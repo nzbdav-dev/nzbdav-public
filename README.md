@@ -1,7 +1,7 @@
 # Demo
 Click on the image below to play the gif
 
-<img width="600" alt="dav-explorer" src="https://github.com/user-attachments/assets/35d28e6a-5bd9-4a3d-8e65-14e2b09a0f39" />
+<img width="600" alt="dav-explorer" src="https://github.com/user-attachments/assets/36f06ca6-47e3-4123-b37c-3552ef890ada" />
 
 # Project Status
 
