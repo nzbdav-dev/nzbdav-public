@@ -34,23 +34,51 @@ export function EmptyQueue() {
                 <input {...getInputProps()} />
                 <input ref={inputRef} name="nzbFile" type="file" style={{ display: 'none' }} />
 
-                {isSubmitting && <>
-                    <div>Uploading...</div>
-                </>}
+                {isSubmitting && (
+                    <div className={styles["content"]}>
+                        <div className={styles["icon-container"]}>
+                            <div className={styles["loading-spinner"]}></div>
+                        </div>
+                        <div className={styles["text-content"]}>
+                            <h4 className={styles["title"]}>Uploading...</h4>
+                            <p className={styles["description"]}>
+                                Adding your NZB files to the queue
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 {/* default view */}
                 {!isSubmitting && !isDragActive && <>
-                    <div className={styles["upload-icon"]}></div>
-                    <br />
-                    <div>Queue is empty.</div>
-                    <div>Upload an *.nzb file</div>
+                    <div className={styles["content"]}>
+                        <div className={styles["icon-container"]}>
+                            <div className={styles["upload-icon"]}></div>
+                        </div>
+                        <div className={styles["text-content"]}>
+                            <h4 className={styles["title"]}>No items in queue</h4>
+                            <p className={styles["description"]}>
+                                Drag & drop your NZB files here or click to browse
+                            </p>
+                        </div>
+                        <button type="button" className={styles["browse-button"]}>
+                            Browse Files
+                        </button>
+                    </div>
                 </>}
 
                 {/* when dragging a file */}
                 {!isSubmitting && isDragActive && <>
-                    <div className={styles["drop-icon"]}></div>
-                    <br />
-                    <div>Drop your *.nzb file</div>
+                    <div className={styles["content"]}>
+                        <div className={styles["icon-container"]}>
+                            <div className={styles["drop-icon"]}></div>
+                        </div>
+                        <div className={styles["text-content"]}>
+                            <h4 className={styles["title"]}>Drop to upload</h4>
+                            <p className={styles["description"]}>
+                                Release to add your NZB files to the queue
+                            </p>
+                        </div>
+                    </div>
                 </>}
             </div>
         </fetcher.Form>

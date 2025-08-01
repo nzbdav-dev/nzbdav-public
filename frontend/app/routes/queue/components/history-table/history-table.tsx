@@ -21,7 +21,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
             </thead>
             <tbody>
                 {history.slots.map((slot, index) =>
-                    <tr key={index}>
+                    <tr key={index} className={styles["table-row"]}>
                         <td className={styles["row-title"]}>
                             <div className={styles.truncate}>
                                 {slot.name}

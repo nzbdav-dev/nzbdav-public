@@ -1,25 +1,30 @@
 .first-table-header {
-    padding-left: 15px !important;
-    border-radius: 10px 0 0 0;
+    padding-left: var(--spacing-md) !important;
+    border-radius: var(--radius-md) 0 0 0;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .table-header {
     text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .last-table-header {
-    border-radius: 0 10px 0 0;
+    border-radius: 0 var(--radius-md) 0 0;
     text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .row-title {
     max-width: 200px;
-    color: #93a1a1 !important;
+    color: var(--text-secondary) !important;
     --bs-table-bg: transparent;
-    padding: 15px 0 !important;
-    padding-left: 15px !important;
+    padding: var(--spacing-md) 0 !important;
+    padding-left: var(--spacing-md) !important;
 }
-
 
 .truncate {
     word-break: break-all;
@@ -34,8 +39,16 @@
 .row-column {
     max-width: 200px;
     --bs-table-bg: transparent;
-    color: #93a1a1 !important;
+    color: var(--text-secondary) !important;
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
+}
+
+.table-row {
+    transition: background-color var(--transition-fast);
+}
+
+.table-row:hover {
+    background-color: hsl(200 20% 8%) !important;
 }

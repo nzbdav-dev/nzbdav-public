@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./layout.module.css";
 
 export type LayoutProps = {
@@ -15,6 +15,12 @@ export type RequiredTopNavProps = {
 export function Layout(props: LayoutProps) {
     // data
     const [isHamburgerMenuOpen, setIsHamburgerMenuOpen] = useState(false);
+    const [isPageVisible, setIsPageVisible] = useState(false);
+
+    // Page transition effect
+    useEffect(() => {
+        setIsPageVisible(true);
+    }, []);
 
     // events
     const onHamburgerMenuClick = function () {
@@ -40,7 +46,10 @@ export function Layout(props: LayoutProps) {
                     <div className={styles["left-navigation"]}>
                         {props.leftNavChild}
                     </div>
-                    <div className={styles["body"]} onClick={onBodyClick}>
+                    <div 
+                        className={`${styles["body"]} ${isPageVisible ? 'page-transition-enter-active' : 'page-transition-enter'}`} 
+                        onClick={onBodyClick}
+                    >
                         {props.bodyChild}
                     </div>
                 </div>

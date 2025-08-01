@@ -1,4 +1,4 @@
-import { Form, Link } from "react-router";
+import { Form, Link, useLocation } from "react-router";
 import styles from "./left-navigation.module.css";
 
 export type LefNavigationProps = {
@@ -6,17 +6,32 @@ export type LefNavigationProps = {
 
 
 export function LeftNavigation(props: LefNavigationProps) {
+    const location = useLocation();
+    
+    const isActive = (path: string) => {
+        return location.pathname === path || location.pathname.startsWith(path + '/');
+    };
+
     return (
         <div className={styles.container}>
-            <Link className={styles.item} to={"/queue"}>
+            <Link 
+                className={`${styles.item} ${isActive('/queue') ? styles.active : ''}`} 
+                to={"/queue"}
+            >
                 <div className={styles["queue-icon"]} />
                 <div className={styles.title}>Queue & History</div>
             </Link>
-            <Link className={styles.item} to={"/explore"}>
+            <Link 
+                className={`${styles.item} ${isActive('/explore') ? styles.active : ''}`} 
+                to={"/explore"}
+            >
                 <div className={styles["explore-icon"]} />
                 <div className={styles.title}>Dav Explore</div>
             </Link>
-            <Link className={styles.item} to={"/settings"}>
+            <Link 
+                className={`${styles.item} ${isActive('/settings') ? styles.active : ''}`} 
+                to={"/settings"}
+            >
                 <div className={styles["settings-icon"]} />
                 <div className={styles.title}>Settings</div>
             </Link>

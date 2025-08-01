@@ -8,12 +8,16 @@ import styles from "./route.module.css"
 import { Alert } from 'react-bootstrap';
 import { backendClient, type HistoryResponse, type QueueResponse } from "~/clients/backend-client.server";
 import { EmptyQueue } from "./components/empty-queue/empty-queue";
+import { EmptyHistory } from "./components/empty-history/empty-history";
 import { HistoryTable } from "./components/history-table/history-table";
 import { QueueTable } from "./components/queue-table/queue-table";
+import { useEffect } from "react";
+import { useRevalidator, useNavigation } from "react-router";
+import { SkeletonTable } from "~/components/skeleton-loader";
 
 type BodyProps = {
     loaderData: { queue: QueueResponse, history: HistoryResponse },
-    actionData: { error: string } | undefined
+    actionData: { error?: string, success?: boolean } | undefined
 };
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -32,6 +36,26 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function Queue(props: Route.ComponentProps) {
+    const revalidator = useRevalidator();
+
+    // Auto-refresh queue data only when there are active downloads
+    useEffect(() => {
+        const hasActiveDownloads = props.loaderData.queue.slots.some(slot => 
+            slot.status.toLowerCase() === 'downloading' || 
+            slot.status.toLowerCase() === 'queued'
+        );
+
+        if (!hasActiveDownloads) return;
+
+        const interval = setInterval(() => {
+            if (revalidator.state === "idle") {
+                revalidator.revalidate();
+            }
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [revalidator, props.loaderData.queue.slots]);
+
     return (
         <Layout
             topNavComponent={TopNavigation}
@@ -43,6 +67,17 @@ export default function Queue(props: Route.ComponentProps) {
 
 function Body({ loaderData, actionData }: BodyProps) {
     const { queue, history } = loaderData;
+    const revalidator = useRevalidator();
+    const navigation = useNavigation();
+    const isLoading = revalidator.state === "loading" || navigation.state === "loading";
+
+    // Revalidate immediately after successful upload
+    useEffect(() => {
+        if (actionData?.success) {
+            revalidator.revalidate();
+        }
+    }, [actionData?.success, revalidator]);
+
     return (
         <div className={styles.container}>
             {/* queue */}
@@ -51,13 +86,22 @@ function Body({ loaderData, actionData }: BodyProps) {
                     Queue
                 </h3>
                 <div className={styles["section-body"]}>
-                    {/* error message */}
+                    {/* messages */}
                     {actionData?.error &&
                         <Alert variant="danger">
-                            {actionData?.error}
+                            {actionData.error}
                         </Alert>
                     }
-                    {queue.slots.length > 0 ? <QueueTable queue={queue} /> : <EmptyQueue />}
+                    {actionData?.success &&
+                        <Alert variant="success">
+                            NZB file added successfully!
+                        </Alert>
+                    }
+                    {isLoading ? (
+                        <SkeletonTable />
+                    ) : (
+                        queue.slots.length > 0 ? <QueueTable queue={queue} /> : <EmptyQueue />
+                    )}
                 </div>
             </div>
 
@@ -67,7 +111,11 @@ function Body({ loaderData, actionData }: BodyProps) {
                     History
                 </h3>
                 <div className={styles["section-body"]}>
-                    <HistoryTable history={history} />
+                    {isLoading ? (
+                        <SkeletonTable />
+                    ) : (
+                        history.slots.length > 0 ? <HistoryTable history={history} /> : <EmptyHistory />
+                    )}
                 </div>
             </div>
         </div>
@@ -84,6 +132,7 @@ export async function action({ request }: Route.ActionArgs) {
         const nzbFile = formData.get("nzbFile");
         if (nzbFile instanceof File) {
             await backendClient.addNzb(nzbFile);
+            return { success: true };
         } else {
             return { error: "Error uploading nzb." }
         }

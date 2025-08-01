@@ -1,0 +1,88 @@
+.container {
+    padding: var(--spacing-md);
+}
+
+.row {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.skeleton {
+    background: linear-gradient(90deg, 
+        hsl(200 20% 12%) 0%, 
+        hsl(200 20% 16%) 50%, 
+        hsl(200 20% 12%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+    flex: 1;
+}
+
+.table {
+    width: 100%;
+}
+
+.tableHeader {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tableRow {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-md);
+}
+
+.skeletonHeader {
+    background: linear-gradient(90deg, 
+        hsl(200 20% 15%) 0%, 
+        hsl(200 20% 20%) 50%, 
+        hsl(200 20% 15%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+    height: 16px;
+    flex: 1;
+}
+
+.skeletonCell {
+    background: linear-gradient(90deg, 
+        hsl(200 20% 12%) 0%, 
+        hsl(200 20% 16%) 50%, 
+        hsl(200 20% 12%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+    height: 18px;
+    flex: 2;
+}
+
+.skeletonCellSmall {
+    background: linear-gradient(90deg, 
+        hsl(200 20% 12%) 0%, 
+        hsl(200 20% 16%) 50%, 
+        hsl(200 20% 12%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+    height: 18px;
+    flex: 1;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}

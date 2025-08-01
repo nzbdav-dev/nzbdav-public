@@ -1,23 +1,27 @@
 .first-table-header {
-    padding-left: 15px !important;
-    border-radius: 10px 0 0 0;
+    padding-left: var(--spacing-md) !important;
+    border-radius: var(--radius-md) 0 0 0;
 }
 
 .table-header {
     text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .last-table-header {
-    border-radius: 0 10px 0 0;
+    border-radius: 0 var(--radius-md) 0 0;
     text-align: center;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 .row-title {
     max-width: 200px;
-    color: #93a1a1 !important;
+    color: var(--text-secondary) !important;
     --bs-table-bg: transparent;
-    padding: 15px 0 !important;
-    padding-left: 15px !important;
+    padding: var(--spacing-md) 0 !important;
+    padding-left: var(--spacing-md) !important;
 }
 
 
@@ -34,14 +38,86 @@
 .row-column {
     max-width: 200px;
     --bs-table-bg: transparent;
-    color: #93a1a1 !important;
+    color: var(--text-secondary) !important;
     text-align: center;
     vertical-align: middle;
     white-space: nowrap;
 }
 
+.table-row {
+    transition: background-color var(--transition-fast);
+}
+
+.table-row:hover {
+    background-color: hsl(200 20% 8%) !important;
+}
+
+.size-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.size-total {
+    font-weight: 500;
+}
+
+.size-remaining {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 120px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px !important;
+    border-radius: var(--radius-sm) !important;
+    background-color: hsl(200 20% 15%) !important;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 45px;
+    text-align: right;
+}
+
+.category-badge {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    padding: 0.4em 0.8em !important;
+    border-radius: var(--radius-md) !important;
+    text-transform: capitalize !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.status-badge {
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    padding: 0.4em 0.8em !important;
+    border-radius: var(--radius-md) !important;
+    text-transform: capitalize !important;
+    transition: all var(--transition-fast) !important;
+}
+
 @media not (pointer: coarse), (min-width: 900px)  {
     .failure-badge:hover {
         cursor: pointer;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px var(--shadow-medium);
+    }
+    
+    .category-badge:hover,
+    .status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px var(--shadow-light);
     }
 }
