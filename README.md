@@ -41,7 +41,6 @@ docker run --rm -it \
   -e PGID=1001 \
   -p 3000:3000 \
   ghcr.io/nzbdav-dev/nzbdav:pre-alpha
-
 ```
 After starting the container, be sure to navigate to the Settings page on the UI to finish setting up your usenet connection settings.
 
