@@ -37,8 +37,11 @@ And if you would like to persist saved settings, attach a volume at `/config`
 mkdir -p $(pwd)/nzbdav && \
 docker run --rm -it \
   -v $(pwd)/nzbdav:/config \
+  -e PUID=1001 \
+  -e PGID=1001 \
   -p 3000:3000 \
   ghcr.io/nzbdav-dev/nzbdav:pre-alpha
+
 ```
 After starting the container, be sure to navigate to the Settings page on the UI to finish setting up your usenet connection settings.
 
