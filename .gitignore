@@ -16,3 +16,15 @@ nuget
 
 .idea/
 .vscode/
+
+#################
+# local configs #
+#################
+
+db.sqlite
+db.sqlite-shm
+db.sqlite-wal
+docker-compose.yml
+rclone.conf
+data-protection/
+CLAUDE.md

@@ -11,7 +11,7 @@ using Usenet.Yenc;
 
 namespace NzbWebDAV.Services.FileProcessors;
 
-public class RarProcessor(NzbFile nzbFile, UsenetStreamingClient usenet, CancellationToken ct) : BaseProcessor
+public class RarProcessor(NzbFile nzbFile, UsenetProviderManager usenet, CancellationToken ct) : BaseProcessor
 {
     public static bool CanProcess(NzbFile file)
     {
@@ -22,7 +22,7 @@ public class RarProcessor(NzbFile nzbFile, UsenetStreamingClient usenet, Cancell
     {
         try
         {
-            await using var stream = await usenet.GetFileStream(nzbFile, concurrentConnections: 1, ct);
+            await using var stream = await usenet.GetFileStreamAsync(nzbFile, concurrentConnections: 1, ct);
             var filename = GetFileName(stream.FirstYencHeader);
             return new Result()
             {

@@ -6,7 +6,7 @@ namespace NzbWebDAV.Streams;
 
 public class RarFileStream(
     DavRarFile.RarPart[] rarParts,
-    UsenetStreamingClient usenet,
+    UsenetProviderManager usenet,
     int concurrentConnections
 ) : Stream
 {

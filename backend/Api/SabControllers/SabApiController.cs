@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NzbWebDAV.Api.SabControllers.AddFile;
+using NzbWebDAV.Api.SabControllers.ClearQueue;
 using NzbWebDAV.Api.SabControllers.GetConfig;
 using NzbWebDAV.Api.SabControllers.GetFullStatus;
 using NzbWebDAV.Api.SabControllers.GetHistory;
@@ -74,6 +75,8 @@ public class SabApiController(
 
             case "queue" when HttpContext.GetQueryParam("name") == "delete":
                 return new RemoveFromQueueController(HttpContext, dbClient, queueManager, configManager);
+            case "queue" when HttpContext.GetQueryParam("name") == "delete_all":
+                return new ClearQueueController(HttpContext, dbClient, configManager);
             case "queue":
                 return new GetQueueController(HttpContext, dbClient, queueManager, configManager);
 

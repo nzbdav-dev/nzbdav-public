@@ -5,7 +5,7 @@ namespace NzbWebDAV.Api.SabControllers.RemoveFromQueue;
 
 public class RemoveFromQueueRequest()
 {
-    public string NzoId { get; init; }
+    public string NzoId { get; init; } = string.Empty;
     public CancellationToken CancellationToken { get; init; }
 
     public RemoveFromQueueRequest(HttpContext httpContext): this()

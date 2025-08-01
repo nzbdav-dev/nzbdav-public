@@ -16,7 +16,7 @@ public class DatabaseStoreWatchFolder(
     DavItem davDirectory,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
-    UsenetStreamingClient usenetClient,
+    UsenetProviderManager usenetClient,
     QueueManager queueManager
 ) : DatabaseStoreCollection(davDirectory, dbClient, configManager, usenetClient, queueManager)
 {

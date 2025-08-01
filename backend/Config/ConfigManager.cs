@@ -78,6 +78,64 @@ public class ConfigManager
         );
     }
 
+    public int GetProviderCount()
+    {
+        var countStr = GetConfigValue("usenet.providers.count");
+        return int.TryParse(countStr, out var count) ? count : 0;
+    }
+
+    public int GetPrimaryProviderIndex()
+    {
+        var primaryStr = GetConfigValue("usenet.providers.primary");
+        return int.TryParse(primaryStr, out var index) ? index : 0;
+    }
+
+    public string? GetProviderConfigValue(int providerIndex, string property)
+    {
+        return GetConfigValue($"usenet.provider.{providerIndex}.{property}");
+    }
+
+    public bool IsProviderEnabled(int providerIndex)
+    {
+        var enabled = GetProviderConfigValue(providerIndex, "enabled");
+        return bool.TryParse(enabled, out var result) && result;
+    }
+
+    public Dictionary<string, string> GetProviderConfiguration(int providerIndex)
+    {
+        var config = new Dictionary<string, string>();
+        var properties = new[] { "name", "host", "port", "use-ssl", "connections", "user", "pass", "priority", "enabled" };
+        
+        foreach (var property in properties)
+        {
+            var value = GetProviderConfigValue(providerIndex, property);
+            if (!string.IsNullOrEmpty(value))
+            {
+                config[property] = value;
+            }
+        }
+        
+        return config;
+    }
+
+    public List<Dictionary<string, string>> GetAllProviderConfigurations()
+    {
+        var providers = new List<Dictionary<string, string>>();
+        var count = GetProviderCount();
+        
+        for (int i = 0; i < count; i++)
+        {
+            var providerConfig = GetProviderConfiguration(i);
+            if (providerConfig.Count > 0)
+            {
+                providerConfig["index"] = i.ToString();
+                providers.Add(providerConfig);
+            }
+        }
+        
+        return providers;
+    }
+
     public string? GetWebdavUser()
     {
         return StringUtil.EmptyToNull(GetConfigValue("webdav.user"))

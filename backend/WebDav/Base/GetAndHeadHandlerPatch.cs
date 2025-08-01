@@ -112,8 +112,8 @@ public class GetAndHeadHandlerPatch : IRequestHandler
                         if (range?.If != null && range?.If != default(DateTime) && propertyManager != null)
                         {
                             var lastModifiedText = (string?)await propertyManager.GetPropertyAsync(entry, DavGetLastModified<IStoreItem>.PropertyName, true, httpContext.RequestAborted).ConfigureAwait(false);
-                            var lastModified = DateTime.Parse(lastModifiedText, CultureInfo.InvariantCulture);
-                            if (lastModified != range.If)
+                            var lastModified = DateTime.Parse(lastModifiedText ?? string.Empty, CultureInfo.InvariantCulture);
+                            if (lastModified != range?.If)
                                 range = null;
                         }
 

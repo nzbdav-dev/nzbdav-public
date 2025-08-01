@@ -1,0 +1,59 @@
+.container {
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header h5 {
+    margin: 0;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.emptyState p {
+    margin: 0;
+    font-size: 1.1em;
+}
+
+/* Table styling */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Action buttons in table */
+.table td .btn {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Badge spacing */
+.badge + .badge {
+    margin-left: 0.25rem;
+}
+
+/* Modal form styling */
+.modal-body .form-group {
+    margin-bottom: 1rem;
+}
+
+.modal-body .form-check {
+    margin-bottom: 1rem;
+}

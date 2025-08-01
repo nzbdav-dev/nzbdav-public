@@ -10,12 +10,12 @@ public class QueueManager : IDisposable
 {
     private InProgressQueueItem? _inProgressQueueItem;
 
-    private readonly UsenetStreamingClient _usenetClient;
+    private readonly UsenetProviderManager _usenetClient;
     private readonly CancellationTokenSource? _cancellationTokenSource;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ConfigManager _configManager;
 
-    public QueueManager(UsenetStreamingClient usenetClient, ConfigManager configManager)
+    public QueueManager(UsenetProviderManager usenetClient, ConfigManager configManager)
     {
         _usenetClient = usenetClient;
         _configManager = configManager;

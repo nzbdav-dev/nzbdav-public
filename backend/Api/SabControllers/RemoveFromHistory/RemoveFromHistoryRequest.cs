@@ -5,7 +5,7 @@ namespace NzbWebDAV.Api.SabControllers.RemoveFromHistory;
 
 public class RemoveFromHistoryRequest()
 {
-    public string NzoId { get; init; }
+    public string NzoId { get; init; } = string.Empty;
     public CancellationToken CancellationToken { get; init; }
 
     public RemoveFromHistoryRequest(HttpContext httpContext): this()
