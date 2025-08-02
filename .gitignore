@@ -16,3 +16,21 @@ nuget
 
 .idea/
 .vscode/
+
+##############
+# Configuration files #
+##############
+
+docker-compose.yml
+rclone.conf
+
+##############
+# Database files #
+##############
+
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
