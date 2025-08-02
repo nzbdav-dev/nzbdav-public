@@ -52,6 +52,7 @@ class Program
         builder.Host.UseSerilog();
         builder.Services.AddControllers();
         builder.Services
+            .AddMemoryCache()
             .AddSingleton(configManager)
             .AddSingleton<UsenetStreamingClient>()
             .AddSingleton<QueueManager>()
@@ -87,6 +88,7 @@ class Program
         var app = builder.Build();
         app.UseSerilogRequestLogging();
         app.UseMiddleware<RequestCancelledMiddleware>();
+        app.UseMiddleware<PerformanceMonitoringMiddleware>();
         app.UseAuthentication();
         app.MapControllers();
         app.UseNWebDav();
