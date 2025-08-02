@@ -1,6 +1,7 @@
 import type { QueueResponse } from "~/clients/backend-client.server"
 import styles from "./queue-table.module.css"
-import { Badge, OverlayTrigger, ProgressBar, Table, Tooltip } from "react-bootstrap"
+import { Badge, Button, OverlayTrigger, ProgressBar, Table, Tooltip } from "react-bootstrap"
+import { Form } from "react-router";
 
 export type QueueTableProps = {
     queue: QueueResponse
@@ -8,6 +9,14 @@ export type QueueTableProps = {
 
 export function QueueTable({ queue }: QueueTableProps) {
     return (
+        <div>
+            <div className={styles["table-actions"]}>
+                <Form method="post">
+                    <Button variant="danger" type="submit" name="intent" value="clear-queue">
+                        Clear Queue
+                    </Button>
+                </Form>
+            </div>
         <Table responsive>
             <thead>
                 <tr>
@@ -51,6 +60,7 @@ export function QueueTable({ queue }: QueueTableProps) {
                 )}
             </tbody>
         </Table>
+    </div>
     );
 }
 

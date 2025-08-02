@@ -1,4 +1,5 @@
 import { Form, Link, useLocation } from "react-router";
+import { useConnectionStats } from "~/hooks/useConnectionStats";
 import styles from "./left-navigation.module.css";
 
 export type LefNavigationProps = {
@@ -7,6 +8,7 @@ export type LefNavigationProps = {
 
 export function LeftNavigation(props: LefNavigationProps) {
     const location = useLocation();
+    const { connectionStats, loading, error } = useConnectionStats();
     
     const isActive = (path: string) => {
         return location.pathname === path || location.pathname.startsWith(path + '/');
@@ -35,6 +37,17 @@ export function LeftNavigation(props: LefNavigationProps) {
                 <div className={styles["settings-icon"]} />
                 <div className={styles.title}>Settings</div>
             </Link>
+
+            {/* Connection Stats Display */}
+            <div className={styles.item} style={{ cursor: 'default', backgroundColor: 'transparent' }}>
+                <div className={styles.connectionIcon} />
+                <div className={styles.title}>
+                    {loading ? 'Loading...' : 
+                     error ? `Error: ${error}` :
+                     connectionStats ? `${connectionStats.totalActiveConnections}/${connectionStats.totalMaxConnections} Active` :
+                     'No Data'}
+                </div>
+            </div>
 
             <div className={styles.footer}>
                 <div className={styles["footer-item"]}>

@@ -65,4 +65,14 @@ public interface IUsenetProvider : IDisposable
     /// Get the size of a file from its segments
     /// </summary>
     Task<long> GetFileSizeAsync(NzbFile file, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get the number of currently active connections for this provider
+    /// </summary>
+    int GetActiveConnectionCount();
+    
+    /// <summary>
+    /// Get the maximum number of connections configured for this provider
+    /// </summary>
+    int GetMaxConnectionCount();
 }

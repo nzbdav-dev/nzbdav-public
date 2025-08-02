@@ -79,6 +79,10 @@ public class MultiConnectionNntpClient(ConnectionPool<INntpClient> connectionPoo
         oldConnectionPool.Dispose();
     }
 
+    public int GetActiveConnectionCount() => _connectionPool.ActiveConnectionCount;
+    
+    public int GetAvailableConnectionCount() => _connectionPool.AvailableConnectionCount;
+
     public void Dispose()
     {
         _connectionPool.Dispose();

@@ -76,7 +76,7 @@ public class SabApiController(
             case "queue" when HttpContext.GetQueryParam("name") == "delete":
                 return new RemoveFromQueueController(HttpContext, dbClient, queueManager, configManager);
             case "queue" when HttpContext.GetQueryParam("name") == "delete_all":
-                return new ClearQueueController(HttpContext, dbClient, configManager);
+                return new ClearQueueController(HttpContext, dbClient, configManager, queueManager);
             case "queue":
                 return new GetQueueController(HttpContext, dbClient, queueManager, configManager);
 

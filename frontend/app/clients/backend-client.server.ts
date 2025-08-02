@@ -117,6 +117,20 @@ class BackendClient {
         return data.nzo_ids[0];
     }
 
+    public async clearQueue(): Promise<void> {
+        const url = process.env.BACKEND_URL + "/api?mode=queue&name=delete_all";
+
+        const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "x-api-key": apiKey }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to clear queue: ${(await response.json()).error}`);
+        }
+    }
+
     public async listWebdavDirectory(directory: string): Promise<DirectoryItem[]> {
         const url = process.env.BACKEND_URL + "/api/list-webdav-directory";
 
@@ -208,6 +222,25 @@ class BackendClient {
         const data = await response.json();
         return data.connected || false;
     }
+
+    public async getConnectionStats(): Promise<ConnectionStatsResponse> {
+        const url = process.env.BACKEND_URL + "/api/usenet-providers/connection-stats";
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": process.env.FRONTEND_BACKEND_API_KEY || ""
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get connection stats: ${(await response.json()).error}`);
+        }
+
+        const data = await response.json();
+        return data;
+    }
 }
 
 export const backendClient = new BackendClient();
@@ -260,4 +293,22 @@ export type TestUsenetConnectionRequest = {
     useSsl: string,
     user: string,
     pass: string
+}
+
+export type ConnectionStatsResponse = {
+    status: boolean,
+    providerStats: ProviderStat[],
+    totalActiveConnections: number,
+    totalMaxConnections: number
+}
+
+export type ProviderStat = {
+    id: string,
+    name: string,
+    host: string,
+    port: number,
+    isHealthy: boolean,
+    priority: number,
+    activeConnections: number,
+    maxConnections: number
 }

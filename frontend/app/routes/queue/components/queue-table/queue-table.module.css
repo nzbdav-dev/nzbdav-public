@@ -44,8 +44,14 @@
     white-space: nowrap;
 }
 
+.table-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+}
+
 .table-row {
-    transition: background-color var(--transition-fast);
+    height: 60px; /* Adjust as needed */
 }
 
 .table-row:hover {

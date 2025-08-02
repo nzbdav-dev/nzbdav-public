@@ -1,4 +1,5 @@
 import { redirect } from "react-router";
+import { clearQueueAction } from "./actions.server";
 import type { Route } from "./+types/route";
 import { sessionStorage } from "~/auth/authentication.server";
 import { Layout } from "../_index/components/layout/layout";
@@ -40,7 +41,7 @@ export default function Queue(props: Route.ComponentProps) {
 
     // Auto-refresh queue data only when there are active downloads
     useEffect(() => {
-        const hasActiveDownloads = props.loaderData.queue.slots.some(slot => 
+        const hasActiveDownloads = props.loaderData.queue.slots.some((slot: any) => 
             slot.status.toLowerCase() === 'downloading' || 
             slot.status.toLowerCase() === 'queued'
         );
@@ -123,6 +124,13 @@ function Body({ loaderData, actionData }: BodyProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+    const formData = await request.clone().formData();
+    const intent = formData.get("intent");
+
+    if (intent === "clear-queue") {
+        return clearQueueAction({ request, params: {}, context: { VALUE_FROM_EXPRESS: '' } });
+    }
+
     let session = await sessionStorage.getSession(request.headers.get("cookie"));
     let user = session.get("user");
     if (!user) return redirect("/login");
@@ -143,3 +151,4 @@ export async function action({ request }: Route.ActionArgs) {
         throw error;
     }
 }
+

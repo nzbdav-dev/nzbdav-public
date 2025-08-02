@@ -1,41 +1,56 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
+using NzbWebDAV.Database.Models;
+using NzbWebDAV.Services;
 
 namespace NzbWebDAV.Api.SabControllers.ClearQueue;
 
 public class ClearQueueController(
     HttpContext httpContext,
     DavDatabaseClient dbClient,
-    ConfigManager configManager
+    ConfigManager configManager,
+    QueueManager queueManager
 ) : SabApiController.BaseController(httpContext, configManager)
 {
     protected override bool RequiresAuthentication => true;
 
-    protected override async Task<object> HandleRequestAsync()
+    protected override async Task<IActionResult> Handle()
     {
         try
         {
-            // Remove all items from the queue
-            var queueItems = dbClient.Ctx.QueueItems.ToList();
-            var removedCount = queueItems.Count;
-            
-            if (removedCount > 0)
+            var totalRemovedCount = 0;
+
+            // 1. Cancel any currently processing queue item
+            var (currentItem, _) = queueManager.GetInProgressQueueItem();
+            if (currentItem != null)
             {
-                dbClient.Ctx.QueueItems.RemoveRange(queueItems);
-                await dbClient.Ctx.SaveChangesAsync();
+                await queueManager.RemoveQueueItemAsync(currentItem.Id.ToString(), dbClient);
+                totalRemovedCount++;
             }
 
-            return new
+            // 2. Remove all pending queue items
+            var queueItems = dbClient.Ctx.QueueItems.ToList();
+            var queueCount = queueItems.Count;
+            if (queueCount > 0)
+            {
+                dbClient.Ctx.QueueItems.RemoveRange(queueItems);
+                totalRemovedCount += queueCount;
+            }
+
+            await dbClient.Ctx.SaveChangesAsync();
+
+            return Ok(new
             {
                 status = true,
                 nzo_ids = Array.Empty<string>(),
-                removed_count = removedCount
-            };
+                removed_count = totalRemovedCount
+            });
         }
         catch (Exception ex)
         {
-            return new { status = false, error = ex.Message };
+            return StatusCode(500, new { status = false, error = ex.Message });
         }
     }
 }

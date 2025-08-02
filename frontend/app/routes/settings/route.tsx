@@ -185,11 +185,22 @@ function getChangedConfig(
     newConfig: Record<string, string>
 ): Record<string, string> {
     let changedConfig: Record<string, string> = {};
+    
+    // Check changes in default config keys
     let configKeys = Object.keys(defaultConfig);
     for (const configKey of configKeys) {
         if (config[configKey] !== newConfig[configKey]) {
             changedConfig[configKey] = newConfig[configKey];
         }
     }
+    
+    // Check changes in provider-specific keys
+    const allKeys = new Set([...Object.keys(config), ...Object.keys(newConfig)]);
+    for (const key of allKeys) {
+        if (key.startsWith("usenet.provider.") && config[key] !== newConfig[key]) {
+            changedConfig[key] = newConfig[key];
+        }
+    }
+    
     return changedConfig;
 }

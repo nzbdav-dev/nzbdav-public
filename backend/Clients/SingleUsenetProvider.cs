@@ -96,7 +96,8 @@ public class SingleUsenetProvider : IUsenetProvider
                 if (completedResult.ResponseType != NntpStatResponseType.ArticleExists)
                 {
                     await childCt.CancelAsync();
-                    _isHealthy = false;
+                    // Missing articles don't affect provider health - this is content availability, not provider connectivity
+                    _logger.LogDebug("Article not found during health check for provider {ProviderName} - content unavailable", ProviderName);
                     return false;
                 }
             }
@@ -106,8 +107,7 @@ public class SingleUsenetProvider : IUsenetProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Health check failed for provider {ProviderName}", ProviderName);
-            _isHealthy = false;
+            HandleProviderException(ex, "Health check failed");
             return false;
         }
     }
@@ -123,8 +123,7 @@ public class SingleUsenetProvider : IUsenetProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get file stream for provider {ProviderName}", ProviderName);
-            _isHealthy = false;
+            HandleProviderException(ex, "Failed to get file stream");
             throw;
         }
     }
@@ -138,8 +137,7 @@ public class SingleUsenetProvider : IUsenetProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get file stream for provider {ProviderName}", ProviderName);
-            _isHealthy = false;
+            HandleProviderException(ex, "Failed to get file stream");
             throw;
         }
     }
@@ -154,8 +152,7 @@ public class SingleUsenetProvider : IUsenetProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get YENC header for provider {ProviderName}", ProviderName);
-            _isHealthy = false;
+            HandleProviderException(ex, "Failed to get YENC header");
             throw;
         }
     }
@@ -170,8 +167,7 @@ public class SingleUsenetProvider : IUsenetProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get file size for provider {ProviderName}", ProviderName);
-            _isHealthy = false;
+            HandleProviderException(ex, "Failed to get file size");
             throw;
         }
     }
@@ -188,6 +184,38 @@ public class SingleUsenetProvider : IUsenetProvider
         }
     }
 
+    /// <summary>
+    /// Handles exceptions and determines whether they should affect provider health.
+    /// Content-related issues (missing articles) don't mark provider as unhealthy.
+    /// Connectivity/authentication issues do mark provider as unhealthy.
+    /// </summary>
+    private void HandleProviderException(Exception ex, string operation)
+    {
+        if (IsContentException(ex))
+        {
+            // Content issues (missing articles, etc.) - don't affect provider health
+            _logger.LogWarning(ex, "{Operation} failed for provider {ProviderName} - content issue: {ErrorMessage}", 
+                operation, ProviderName, ex.Message);
+        }
+        else
+        {
+            // Provider connectivity/authentication issues - mark provider as unhealthy
+            _logger.LogError(ex, "{Operation} failed for provider {ProviderName} - provider issue: {ErrorMessage}", 
+                operation, ProviderName, ex.Message);
+            _isHealthy = false;
+        }
+    }
+
+    /// <summary>
+    /// Determines if an exception is related to content availability rather than provider connectivity.
+    /// </summary>
+    private static bool IsContentException(Exception ex)
+    {
+        return ex is UsenetArticleNotFoundException ||
+               ex.Message.Contains("Article with message-id") ||
+               ex.Message.Contains("not found");
+    }
+
     public static async ValueTask<INntpClient> CreateNewConnection(
         string host,
         int port,
@@ -202,6 +230,21 @@ public class SingleUsenetProvider : IUsenetProvider
         if (!await connection.AuthenticateAsync(user, pass, cancellationToken))
             throw new CouldNotLoginToUsenetException("Could not login to usenet host. Check username and password.");
         return connection;
+    }
+
+    public int GetActiveConnectionCount()
+    {
+        if (_client is CachingNntpClient cachingClient &&
+            cachingClient.GetInnerClient() is MultiConnectionNntpClient multiClient)
+        {
+            return multiClient.GetActiveConnectionCount();
+        }
+        return 0;
+    }
+
+    public int GetMaxConnectionCount()
+    {
+        return _connections;
     }
 
     public void Dispose()

@@ -54,6 +54,12 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
 
     /* ============================== public API ==================================== */
 
+    /// <summary>Gets the number of currently active connections.</summary>
+    public int ActiveConnectionCount => (int)Volatile.Read(ref _live);
+
+    /// <summary>Gets the number of available connections in the pool.</summary>
+    public int AvailableConnectionCount => _available.Count;
+
     /// <summary>Borrow a connection; releases automatically with the lock.</summary>
     public async Task<ConnectionLock<T>> GetConnectionLockAsync(
         CancellationToken cancellationToken = default)
