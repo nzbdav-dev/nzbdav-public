@@ -37,8 +37,8 @@ And if you would like to persist saved settings, attach a volume at `/config`
 mkdir -p $(pwd)/nzbdav && \
 docker run --rm -it \
   -v $(pwd)/nzbdav:/config \
-  -e PUID=1001 \
-  -e PGID=1001 \
+  -e PUID=1000 \
+  -e PGID=1000 \
   -p 3000:3000 \
   ghcr.io/nzbdav-dev/nzbdav:pre-alpha
 ```
