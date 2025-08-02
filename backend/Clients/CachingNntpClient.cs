@@ -7,6 +7,8 @@ namespace NzbWebDAV.Clients;
 public class CachingNntpClient(INntpClient client, MemoryCache cache) : WrappingNntpClient(client)
 {
     private readonly INntpClient _client = client;
+    
+    public INntpClient GetInnerClient() => _client;
 
     public override async Task<YencHeader> GetSegmentYencHeaderAsync(string segmentId, CancellationToken cancellationToken)
     {

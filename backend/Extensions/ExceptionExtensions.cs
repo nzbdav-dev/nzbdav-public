@@ -10,4 +10,10 @@ public static class ExceptionExtensions
             or SharpCompress.Common.InvalidFormatException
             or Usenet.Exceptions.InvalidYencDataException;
     }
+
+    public static bool IsRetryableDownloadException(this Exception exception)
+    {
+        return exception is NzbWebDAV.Exceptions.UsenetArticleNotFoundException ||
+               (exception is InvalidOperationException invalidOp && invalidOp.Message.Contains("providers failed"));
+    }
 }

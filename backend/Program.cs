@@ -13,6 +13,7 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Extensions;
 using NzbWebDAV.Middlewares;
 using NzbWebDAV.Services;
+using Microsoft.Extensions.Logging;
 using NzbWebDAV.Utils;
 using NzbWebDAV.WebDav;
 using NzbWebDAV.WebDav.Base;
@@ -53,7 +54,7 @@ class Program
         builder.Services.AddControllers();
         builder.Services
             .AddSingleton(configManager)
-            .AddSingleton<UsenetStreamingClient>()
+            .AddSingleton<UsenetProviderManager>()
             .AddSingleton<QueueManager>()
             .AddScoped<DavDatabaseContext>()
             .AddScoped<DavDatabaseClient>()

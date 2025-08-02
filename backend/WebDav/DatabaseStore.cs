@@ -10,7 +10,7 @@ namespace NzbWebDAV.WebDav;
 public class DatabaseStore(
     DavDatabaseClient dbClient,
     ConfigManager configManager,
-    UsenetStreamingClient usenetClient,
+    UsenetProviderManager usenetClient,
     QueueManager queueManager
 ) : IStore
 {

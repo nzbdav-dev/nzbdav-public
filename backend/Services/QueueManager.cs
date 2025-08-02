@@ -9,11 +9,11 @@ public class QueueManager : IDisposable
 {
     private InProgressQueueItem? _inProgressQueueItem;
 
-    private readonly UsenetStreamingClient _usenetClient;
+    private readonly UsenetProviderManager _usenetClient;
     private readonly CancellationTokenSource? _cancellationTokenSource;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public QueueManager(UsenetStreamingClient usenetClient)
+    public QueueManager(UsenetProviderManager usenetClient)
     {
         _usenetClient = usenetClient;
         _cancellationTokenSource = new CancellationTokenSource();

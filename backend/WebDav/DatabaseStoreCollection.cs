@@ -15,7 +15,7 @@ public class DatabaseStoreCollection(
     DavItem davDirectory,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
-    UsenetStreamingClient usenetClient,
+    UsenetProviderManager usenetClient,
     QueueManager queueManager
 ) : BaseStoreCollection
 {

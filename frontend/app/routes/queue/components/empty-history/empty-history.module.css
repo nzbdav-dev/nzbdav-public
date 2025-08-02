@@ -1,0 +1,41 @@
+.container {
+    border-radius: var(--radius-lg);
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, hsl(200 20% 6%), hsl(200 20% 8%));
+    border: 1px solid var(--border-color);
+}
+
+.content {
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.icon-container {
+    margin-bottom: var(--spacing-md);
+}
+
+.history-icon {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%23b0bec5' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E");
+    opacity: 0.6;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.description {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+}

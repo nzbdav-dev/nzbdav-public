@@ -1,4 +1,9 @@
 declare const styles: {
+  readonly "active": string;
+  readonly "connectionIcon": string;
+  readonly "connectionStats": string;
+  readonly "connectionSummary": string;
+  readonly "connectionCount": string;
   readonly "container": string;
   readonly "explore-icon": string;
   readonly "footer": string;
@@ -6,6 +11,7 @@ declare const styles: {
   readonly "github-icon": string;
   readonly "item": string;
   readonly "logout-icon": string;
+  readonly "providerDetails": string;
   readonly "queue-icon": string;
   readonly "settings-icon": string;
   readonly "stream-icon": string;

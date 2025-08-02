@@ -13,7 +13,7 @@ namespace NzbWebDAV.WebDav;
 public class DatabaseStoreNzbFile(
     DavItem davNzbFile,
     DavDatabaseClient dbClient,
-    UsenetStreamingClient usenetClient,
+    UsenetProviderManager usenetClient,
     ConfigManager configManager
 ) : BaseStoreItem
 {

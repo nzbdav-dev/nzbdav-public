@@ -4,7 +4,7 @@ using Usenet.Nzb;
 
 namespace NzbWebDAV.Services.FileProcessors;
 
-public class FileProcessor(NzbFile nzbFile, UsenetStreamingClient usenet, CancellationToken ct) : BaseProcessor
+public class FileProcessor(NzbFile nzbFile, UsenetProviderManager usenet, CancellationToken ct) : BaseProcessor
 {
     public static bool CanProcess(NzbFile file)
     {

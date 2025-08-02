@@ -15,7 +15,7 @@ namespace NzbWebDAV.WebDav;
 public class DatabaseStoreRarFile(
     DavItem davRarFile,
     DavDatabaseClient dbClient,
-    UsenetStreamingClient usenetClient,
+    UsenetProviderManager usenetClient,
     ConfigManager configManager
 ) : BaseStoreItem
 {

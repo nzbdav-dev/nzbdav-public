@@ -16,7 +16,7 @@ namespace NzbWebDAV.Services;
 public class QueueItemProcessor(
     QueueItem queueItem,
     DavDatabaseClient dbClient,
-    UsenetStreamingClient usenetClient,
+    UsenetProviderManager usenetClient,
     IProgress<int> progress,
     CancellationToken ct
 )
@@ -44,6 +44,48 @@ public class QueueItemProcessor(
             catch (Exception ex)
             {
                 Log.Error(e, ex.Message);
+            }
+        }
+
+        // when retryable errors are encountered (like missing articles)
+        // retry up to a limit, then fail permanently
+        catch (Exception e) when (e.IsRetryableDownloadException())
+        {
+            const int maxRetries = 3;
+            
+            try
+            {
+                Log.Error($"Failed to process job, `{queueItem.JobName}` -- {e.Message} -- Retry {queueItem.RetryCount + 1}/{maxRetries}");
+                dbClient.Ctx.ChangeTracker.Clear();
+                
+                queueItem.RetryCount++;
+                
+                // If we've exceeded max retries, fail permanently
+                if (queueItem.RetryCount >= maxRetries)
+                {
+                    Log.Error($"Job `{queueItem.JobName}` failed permanently after {maxRetries} retries. Moving to history as failed.");
+                    await MarkQueueItemCompleted(startTime, error: $"Failed after {maxRetries} retries: {e.Message}");
+                }
+                else
+                {
+                    // Retry with custom delays: 15s, 30s, 1m
+                    var delaySeconds = queueItem.RetryCount switch
+                    {
+                        1 => 15,  // First retry: 15 seconds
+                        2 => 30,  // Second retry: 30 seconds
+                        _ => 60   // Third retry: 1 minute
+                    };
+                    queueItem.PauseUntil = DateTime.Now.AddSeconds(delaySeconds);
+                    
+                    dbClient.Ctx.QueueItems.Attach(queueItem);
+                    dbClient.Ctx.Entry(queueItem).Property(x => x.PauseUntil).IsModified = true;
+                    dbClient.Ctx.Entry(queueItem).Property(x => x.RetryCount).IsModified = true;
+                    await dbClient.Ctx.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, ex.Message);
             }
         }
 

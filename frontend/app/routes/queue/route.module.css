@@ -1,17 +1,31 @@
 .container {
     min-width: 100%;
     min-height: 100%;
-    padding: 30px 35px 20px 35px;
-    color: #93a1a1;
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-lg) var(--spacing-xl);
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
 .section {
-    margin-bottom: 50px;
+    margin-bottom: var(--spacing-xl);
 }
 
 .section-title {
-    margin-bottom: 30px;
+    margin-bottom: var(--spacing-lg);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
-.section-body {}
+.section-body {
+    background: hsl(200 20% 8%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15), 0 4px 12px var(--shadow-light);
+    overflow: hidden;
+    transition: box-shadow var(--transition-medium);
+}
+
+.section-body:hover {
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2), 0 6px 16px var(--shadow-medium);
+}

@@ -7,14 +7,14 @@ namespace NzbWebDAV.Api.Controllers.GetWebdavItem;
 
 public class GetWebdavItemRequest
 {
-    public string Item { get; init; }
+    public string Item { get; init; } = string.Empty;
     public long? RangeStart { get; init; }
     public long? RangeEnd { get; init; }
 
     public GetWebdavItemRequest(HttpContext context)
     {
         // normalize path
-        var path = context.Request.Path.Value;
+        var path = context.Request.Path.Value ?? string.Empty;
         if (path.StartsWith("/")) path = path[1..];
         if (path.StartsWith("view")) path = path[4..];
         if (path.StartsWith("/")) path = path[1..];
