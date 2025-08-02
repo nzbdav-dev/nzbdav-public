@@ -14,7 +14,7 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
     {
         var databaseFilePath = Path.Join(ConfigPath, "db.sqlite");
         return new DbContextOptionsBuilder<DavDatabaseContext>()
-            .UseSqlite($"Data Source={databaseFilePath}")
+            .UseSqlite($"Data Source={databaseFilePath};Cache=Shared;Mode=ReadWrite;Foreign Keys=True;Pooling=True;Max Pool Size=100")
             .AddInterceptors(new SqliteForeignKeyEnabler())
             .Options;
     });
