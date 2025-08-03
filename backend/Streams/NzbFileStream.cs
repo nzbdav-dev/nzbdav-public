@@ -106,7 +106,13 @@ public class NzbFileStream(
                 header = await client.GetSegmentYencHeaderAsync(fileSegmentIds[guess], cancellationToken);
                 if (header.PartOffset <= byteOffset && byteOffset < header.PartOffset + header.PartSize)
                     return null;
-                return byteOffset / (header.PartOffset + header.PartSize / 2.0d);
+                
+                // Improved interpolation calculation to prevent division by zero and infinite loops
+                var segmentEnd = header.PartOffset + header.PartSize;
+                if (segmentEnd <= 0) return 1.0; // Force movement if invalid segment
+                
+                var ratio = (double)byteOffset / segmentEnd;
+                return Math.Max(0.1, Math.Min(10.0, ratio)); // Clamp to reasonable bounds
             }
         );
         return (segmentIndex, header!);
