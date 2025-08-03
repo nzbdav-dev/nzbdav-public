@@ -41,13 +41,22 @@ public class RarAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) :
             var pathWithinArchive = archiveFile.Key;
             var rarParts = archiveFile.Value.ToArray();
             var parentDirectory = EnsurePath(pathWithinArchive);
+            var fileName = Path.GetFileName(pathWithinArchive);
+
+            // Check if file already exists
+            var existingItem = dbClient.Ctx.Items
+                .FirstOrDefault(x => x.ParentId == parentDirectory.Id && x.Name == fileName);
+            if (existingItem is not null)
+            {
+                continue; // Skip if file already exists
+            }
 
             var davItem = new DavItem()
             {
                 Id = Guid.NewGuid(),
                 CreatedAt = DateTime.Now,
                 ParentId = parentDirectory.Id,
-                Name = Path.GetFileName(pathWithinArchive),
+                Name = fileName,
                 FileSize = rarParts.Sum(x => x.ByteCount),
                 Type = DavItem.ItemType.RarFile
             };
@@ -82,6 +91,16 @@ public class RarAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) :
     private DavItem EnsureDirectory(DavItem parentDirectory, string directoryName, string pathKey)
     {
         if (_directoryCache.TryGetValue(pathKey, out var cachedDirectory)) return cachedDirectory;
+        
+        // Check if directory already exists in database
+        var existingDirectory = dbClient.Ctx.Items
+            .FirstOrDefault(x => x.ParentId == parentDirectory.Id && x.Name == directoryName);
+        if (existingDirectory is not null)
+        {
+            _directoryCache.Add(pathKey, existingDirectory);
+            return existingDirectory;
+        }
+        
         var directory = new DavItem()
         {
             Id = Guid.NewGuid(),

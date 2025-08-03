@@ -13,6 +13,14 @@ public class FileAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) 
             if (processorResult is not FileProcessor.Result result) continue;
             if (result.FileName == "") continue; // skip files whose name we can't determine
 
+            // Check if file already exists
+            var existingItem = dbClient.Ctx.Items
+                .FirstOrDefault(x => x.ParentId == mountDirectory.Id && x.Name == result.FileName);
+            if (existingItem is not null)
+            {
+                continue; // Skip if file already exists
+            }
+
             var davItem = new DavItem()
             {
                 Id = Guid.NewGuid(),
