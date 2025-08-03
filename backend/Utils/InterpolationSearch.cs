@@ -23,15 +23,16 @@ public static class InterpolationSearch
     {
         var result = await guessResult(guess);
         if (result == null) return guess;
+        
         var newGuess = (int)((guess - startInclusive) * result.Value) + startInclusive;
         if (newGuess >= endExclusive) newGuess = endExclusive - 1;
         if (result < 1 && newGuess >= guess) newGuess--;
         if (result > 1 && newGuess <= guess) newGuess++;
-        if (newGuess < 0 || newGuess >= endExclusive)
+        
+        if (newGuess < startInclusive || newGuess >= endExclusive)
             throw new Exception("Could not find through interpolation search.");
 
-        // Add termination condition to prevent infinite recursion
-        if (newGuess == guess || Math.Abs(newGuess - guess) <= 1)
+        if (newGuess == guess)
             return guess;
 
         return await Find(newGuess, startInclusive, endExclusive, guessResult);
