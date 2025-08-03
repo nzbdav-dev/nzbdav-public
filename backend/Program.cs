@@ -37,6 +37,7 @@ class Program
             .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.AspNetCore.DataProtection", LogEventLevel.Error)
+            .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning)
             .WriteTo.Console(theme: AnsiConsoleTheme.Code)
             .CreateLogger();
 
@@ -86,7 +87,28 @@ class Program
 
         // run
         var app = builder.Build();
-        app.UseSerilogRequestLogging();
+        app.UseSerilogRequestLogging(options =>
+        {
+            options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+            options.GetLevel = (httpContext, elapsed, ex) =>
+            {
+                if (ex != null) return LogEventLevel.Error;
+                if (httpContext.Response.StatusCode > 499) return LogEventLevel.Error;
+                if (httpContext.Response.StatusCode > 399) return LogEventLevel.Warning;
+                
+                // Reduce verbosity for routine WebDAV operations
+                var path = httpContext.Request.Path.Value?.ToLower() ?? "";
+                var method = httpContext.Request.Method;
+                
+                if (method == "PROPFIND" || 
+                    (method == "GET" && (path.Contains("/api") || path.Contains(".rclonelink"))))
+                {
+                    return LogEventLevel.Debug;
+                }
+                
+                return LogEventLevel.Information;
+            };
+        });
         app.UseMiddleware<RequestCancelledMiddleware>();
         app.UseAuthentication();
         app.MapControllers();

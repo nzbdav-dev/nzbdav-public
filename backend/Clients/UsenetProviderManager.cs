@@ -182,10 +182,10 @@ public class UsenetProviderManager : IDisposable
             try
             {
                 attemptedProviders.Add(provider.ProviderName);
-                _logger.LogInformation("Attempting to get file stream from provider {ProviderName} (priority {Priority})", 
+                _logger.LogDebug("Attempting to get file stream from provider {ProviderName} (priority {Priority})", 
                     provider.ProviderName, provider.Priority);
                 var stream = await provider.GetFileStreamAsync(nzbFile, concurrentConnections, cancellationToken);
-                _logger.LogInformation("✓ Successfully got file stream from provider {ProviderName} after {AttemptCount} attempts", 
+                _logger.LogDebug("✓ Successfully got file stream from provider {ProviderName} after {AttemptCount} attempts", 
                     provider.ProviderName, attemptedProviders.Count);
                 return stream;
             }
