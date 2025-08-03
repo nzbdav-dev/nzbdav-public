@@ -196,6 +196,16 @@ public class QueueItemProcessor(
 
     private DavItem CreateMountFolder(DavItem categoryFolder)
     {
+        // Check if mount folder already exists
+        var existingMountFolder = dbClient.Ctx.Items
+            .FirstOrDefault(x => x.ParentId == categoryFolder.Id && x.Name == queueItem.JobName);
+        if (existingMountFolder is not null)
+        {
+            Log.Information($"Mount folder `{queueItem.JobName}` already exists, reusing it.");
+            return existingMountFolder;
+        }
+
+        // Create new mount folder
         var mountFolder = new DavItem()
         {
             Id = Guid.NewGuid(),
@@ -233,10 +243,29 @@ public class QueueItemProcessor(
         Action? databaseOperations = null
     )
     {
-        dbClient.Ctx.ChangeTracker.Clear();
-        databaseOperations?.Invoke();
-        dbClient.Ctx.QueueItems.Remove(queueItem);
-        dbClient.Ctx.HistoryItems.Add(CreateHistoryItem(startTime, error));
-        await dbClient.Ctx.SaveChangesAsync(ct);
+        try
+        {
+            dbClient.Ctx.ChangeTracker.Clear();
+            databaseOperations?.Invoke();
+            dbClient.Ctx.QueueItems.Remove(queueItem);
+            dbClient.Ctx.HistoryItems.Add(CreateHistoryItem(startTime, error));
+            await dbClient.Ctx.SaveChangesAsync(ct);
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 19) // UNIQUE constraint failed
+        {
+            Log.Warning($"Database constraint violation when completing job `{queueItem.JobName}`: {ex.Message}. This may indicate the job was already processed.");
+            
+            // Clear the context and try to remove just the queue item
+            dbClient.Ctx.ChangeTracker.Clear();
+            
+            // Verify the queue item still exists before removing
+            var existingQueueItem = await dbClient.Ctx.QueueItems.FindAsync(queueItem.Id);
+            if (existingQueueItem != null)
+            {
+                dbClient.Ctx.QueueItems.Remove(existingQueueItem);
+                dbClient.Ctx.HistoryItems.Add(CreateHistoryItem(startTime, error));
+                await dbClient.Ctx.SaveChangesAsync(ct);
+            }
+        }
     }
 }
