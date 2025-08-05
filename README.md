@@ -112,6 +112,57 @@ Once you have the webdav mounted onto your filesystem (e.g. accessible at `/mnt/
 * The symlinks always point to the `/mnt/nzbdav/completed` folder which contain the streamable content.
 * Plex accesses one of the symlinks from your media library, it will automatically fetch and stream it from the mounted webdav.
 
+
+# Example Docker Compose Setup
+Fully containerized setup for docker compose. 
+
+See rclone [docs](https://rclone.org/docker/) for more info.
+
+Install the rclone volume plugin:
+```
+sudo dnf install fuse3 # Verify FUSE driver is installed on host. Change command per host OS.
+sudo mkdir -p /var/lib/docker-plugins/rclone/config
+sudo mkdir -p /var/lib/docker-plugins/rclone/cache
+docker plugin install rclone/docker-volume-rclone:amd64 args="-v --links --buffer-size=1024" --alias rclone --grant-all-permissions
+```
+You can set any options here in the `args="..."` section. The command above sets bare minimum, and must be accompanied with more options in the example compose file.
+
+Move or create `rclone.conf` in `/var/lib/docker-plugins/rclone/config/`. Contents should follow the [example](https://github.com/nzbdav-dev/nzbdav?tab=readme-ov-file#rclone).
+
+In your compose.yaml...
+```
+services:
+  nzbdav:
+    image: ghcr.io/nzbdav-dev/nzbdav:pre-alpha
+    environment:
+      - PUID=1000
+      - PGID=2343
+    ports:
+      - 23729:3000
+    volumes:
+      - /opt/stacks/nzbdav:/config
+    restart: unless-stopped
+
+  radarr:
+    volumes:
+      - nzbdav:/mnt/nzbdav # Change target path based on SABnzbd rclone mount directory setting.
+
+# the rest of your config ...
+
+volumes:
+  nzbdav:
+    driver: rclone
+    driver_opts:
+      remote: 'nzb-dav:'
+      allow_other: 'true'
+      vfs_cache_mode: off
+      dir_cache_time: 1s
+      allow_non_empty: 'true'
+      uid: 1000
+      gid: 2343
+
+```
+
 # More screenshots
 <img width="300" alt="onboarding" src="https://github.com/user-attachments/assets/4ca1bfed-3b98-4ff2-8108-59ed07a25591" />
 <img width="300" alt="queue and history" src="https://github.com/user-attachments/assets/6ae64b41-2ec4-4c40-9c40-de23e42a4178" />
