@@ -213,7 +213,9 @@ public class SingleUsenetProvider : IUsenetProvider
     {
         return ex is UsenetArticleNotFoundException ||
                ex.Message.Contains("Article with message-id") ||
-               ex.Message.Contains("not found");
+               ex.Message.Contains("not found") ||
+               ex.Message.Contains("Missing part header") ||
+               ex.Message.Contains("Received invalid response");
     }
 
     public static async ValueTask<INntpClient> CreateNewConnection(
