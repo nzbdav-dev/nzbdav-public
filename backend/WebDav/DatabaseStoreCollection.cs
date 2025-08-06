@@ -8,6 +8,7 @@ using NzbWebDAV.Extensions;
 using NzbWebDAV.Services;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
+using Microsoft.Extensions.Logging;
 
 namespace NzbWebDAV.WebDav;
 
@@ -16,7 +17,8 @@ public class DatabaseStoreCollection(
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetProviderManager usenetClient,
-    QueueManager queueManager
+    QueueManager queueManager,
+    ILoggerFactory loggerFactory
 ) : BaseStoreCollection
 {
     public override string Name => davDirectory.Name;
@@ -96,15 +98,15 @@ public class DatabaseStoreCollection(
         return davItem.Type switch
         {
             DavItem.ItemType.Directory when davItem.Id == DavItem.NzbFolder.Id =>
-                new DatabaseStoreWatchFolder(davItem, dbClient, configManager, usenetClient, queueManager),
+                new DatabaseStoreWatchFolder(davItem, dbClient, configManager, usenetClient, queueManager, loggerFactory),
             DavItem.ItemType.Directory =>
-                new DatabaseStoreCollection(davItem, dbClient, configManager, usenetClient, queueManager),
+                new DatabaseStoreCollection(davItem, dbClient, configManager, usenetClient, queueManager, loggerFactory),
             DavItem.ItemType.SymlinkRoot =>
-                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager),
+                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager, "", loggerFactory),
             DavItem.ItemType.NzbFile =>
-                new DatabaseStoreNzbFile(davItem, dbClient, usenetClient, configManager),
+                new DatabaseStoreNzbFile(davItem, dbClient, usenetClient, configManager, loggerFactory.CreateLogger<DatabaseStoreNzbFile>()),
             DavItem.ItemType.RarFile =>
-                new DatabaseStoreRarFile(davItem, dbClient, usenetClient, configManager),
+                new DatabaseStoreRarFile(davItem, dbClient, usenetClient, configManager, loggerFactory.CreateLogger<DatabaseStoreRarFile>()),
             _ => throw new ArgumentException("Unrecognized directory child type.")
         };
     }

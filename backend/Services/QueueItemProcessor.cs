@@ -9,7 +9,7 @@ using NzbWebDAV.Services.FileAggregators;
 using NzbWebDAV.Services.FileProcessors;
 using NzbWebDAV.Services.Validators;
 using NzbWebDAV.Utils;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using Usenet.Nzb;
 
 namespace NzbWebDAV.Services;
@@ -20,7 +20,8 @@ public class QueueItemProcessor(
     UsenetProviderManager usenetClient,
     ConfigManager configManager,
     IProgress<int> progress,
-    CancellationToken ct
+    CancellationToken ct,
+    ILogger<QueueItemProcessor> logger
 )
 {
     public async Task ProcessAsync()
@@ -45,7 +46,7 @@ public class QueueItemProcessor(
             }
             catch (Exception ex)
             {
-                Log.Error(e, ex.Message);
+                logger.LogError(e, "Failed to mark queue item as completed for job '{JobName}': {ErrorMessage}", queueItem.JobName, ex.Message);
             }
         }
 
@@ -57,7 +58,8 @@ public class QueueItemProcessor(
             
             try
             {
-                Log.Error($"Failed to process job, `{queueItem.JobName}` -- {e.Message} -- Retry {queueItem.RetryCount + 1}/{maxRetries}");
+                logger.LogWarning("Job '{JobName}' failed, retry {RetryAttempt}/{MaxRetries}: {ErrorMessage}", 
+                    queueItem.JobName, queueItem.RetryCount + 1, maxRetries, e.Message);
                 dbClient.Ctx.ChangeTracker.Clear();
                 
                 queueItem.RetryCount++;
@@ -65,7 +67,8 @@ public class QueueItemProcessor(
                 // If we've exceeded max retries, fail permanently
                 if (queueItem.RetryCount >= maxRetries)
                 {
-                    Log.Error($"Job `{queueItem.JobName}` failed permanently after {maxRetries} retries. Moving to history as failed.");
+                    logger.LogError("Job '{JobName}' failed permanently after {MaxRetries} retries, moving to history: {FinalErrorMessage}", 
+                        queueItem.JobName, maxRetries, e.Message);
                     await MarkQueueItemCompleted(startTime, error: $"Failed after {maxRetries} retries: {e.Message}");
                 }
                 else
@@ -87,7 +90,7 @@ public class QueueItemProcessor(
             }
             catch (Exception ex)
             {
-                Log.Error(ex, ex.Message);
+                logger.LogError(ex, "Failed to update retry count for job '{JobName}': {ErrorMessage}", queueItem.JobName, ex.Message);
             }
         }
 
@@ -99,7 +102,8 @@ public class QueueItemProcessor(
         {
             try
             {
-                Log.Error($"Failed to process job, `{queueItem.JobName}` -- {e.Message} -- {e}");
+                logger.LogError(e, "Unexpected error processing job '{JobName}', will retry in 1 minute: {ErrorMessage}", 
+                    queueItem.JobName, e.Message);
                 dbClient.Ctx.ChangeTracker.Clear();
                 queueItem.PauseUntil = DateTime.Now.AddMinutes(1);
                 dbClient.Ctx.QueueItems.Attach(queueItem);
@@ -108,7 +112,7 @@ public class QueueItemProcessor(
             }
             catch (Exception ex)
             {
-                Log.Error(ex, ex.Message);
+                logger.LogError(ex, "Failed to update pause time for job '{JobName}': {ErrorMessage}", queueItem.JobName, ex.Message);
             }
         }
     }
@@ -118,7 +122,7 @@ public class QueueItemProcessor(
         // This NZB is already processed and mounted
         if (await IsAlreadyDownloaded())
         {
-            Log.Information($"Nzb `{queueItem.JobName}` is a duplicate. Skipping and marking complete.");
+            logger.LogInformation("Job '{JobName}' already exists, skipping duplicate download", queueItem.JobName);
             await MarkQueueItemCompleted(startTime);
             return;
         }
@@ -201,7 +205,7 @@ public class QueueItemProcessor(
             .FirstOrDefault(x => x.ParentId == categoryFolder.Id && x.Name == queueItem.JobName);
         if (existingMountFolder is not null)
         {
-            Log.Information($"Mount folder `{queueItem.JobName}` already exists, reusing it.");
+            logger.LogDebug("Mount folder '{JobName}' already exists, reusing it", queueItem.JobName);
             return existingMountFolder;
         }
 
@@ -253,7 +257,8 @@ public class QueueItemProcessor(
         }
         catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.SqliteErrorCode == 19) // UNIQUE constraint failed
         {
-            Log.Warning($"Database constraint violation when completing job `{queueItem.JobName}`: {ex.Message}. This may indicate the job was already processed.");
+            logger.LogWarning("Database constraint violation completing job '{JobName}': {ErrorMessage} (job may have been processed already)", 
+                queueItem.JobName, ex.Message);
             
             // Clear the context and try to remove just the queue item
             dbClient.Ctx.ChangeTracker.Clear();

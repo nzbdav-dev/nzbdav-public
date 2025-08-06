@@ -160,14 +160,25 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
     private async Task SweepOnce()
     {
         var now = Environment.TickCount64;
-        var survivors = new List<Pooled>();
+        var availableCount = _available.Count;
+        
+        // Skip sweeping if pool is empty or very small to reduce overhead
+        if (availableCount == 0) return;
+        
+        var survivors = new List<Pooled>(capacity: availableCount);
+        var expiredCount = 0;
 
         while (_available.TryPop(out var item))
         {
             if (item.IsExpired(IdleTimeout, now))
             {
-                await DisposeConnectionAsync(item.Connection).ConfigureAwait(false);
-                Interlocked.Decrement(ref _live);
+                expiredCount++;
+                // Dispose expired connections in background to avoid blocking
+                _ = Task.Run(async () =>
+                {
+                    await DisposeConnectionAsync(item.Connection).ConfigureAwait(false);
+                    Interlocked.Decrement(ref _live);
+                });
             }
             else
             {
@@ -175,9 +186,19 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
             }
         }
 
-        // Preserve original LIFO order.
-        for (int i = survivors.Count - 1; i >= 0; i--)
-            _available.Push(survivors[i]);
+        // Only rebuild stack if we actually removed expired items
+        if (expiredCount > 0)
+        {
+            // Preserve original LIFO order.
+            for (int i = survivors.Count - 1; i >= 0; i--)
+                _available.Push(survivors[i]);
+        }
+        else
+        {
+            // No expired items, put everything back efficiently
+            foreach (var survivor in survivors)
+                _available.Push(survivor);
+        }
     }
 
     /* ------------------------- dispose helpers ------------------------------------ */

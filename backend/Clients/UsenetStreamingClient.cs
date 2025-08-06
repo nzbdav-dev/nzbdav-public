@@ -28,7 +28,15 @@ public class UsenetStreamingClient
         var createNewConnection = (CancellationToken ct) => CreateNewConnection(host, port, useSsl, user, pass, ct);
         ConnectionPool<INntpClient> connectionPool = new(connections, createNewConnection);
         var multiConnectionClient = new MultiConnectionNntpClient(connectionPool);
-        var cache = new MemoryCache(new MemoryCacheOptions() { SizeLimit = 8192 });
+        
+        // Adaptive cache sizing based on available memory and connection count
+        var baseCacheSize = Math.Max(16384, connections * 512); // Minimum 16K, scale with connections
+        var maxCacheSize = Math.Min(baseCacheSize, 65536); // Cap at 64K entries
+        var cache = new MemoryCache(new MemoryCacheOptions() 
+        { 
+            SizeLimit = maxCacheSize,
+            CompactionPercentage = 0.25 // Compact when 75% full
+        });
         _client = new CachingNntpClient(multiConnectionClient, cache);
 
         // when config changes, update the connection-pool
@@ -56,21 +64,30 @@ public class UsenetStreamingClient
 
     public async Task<bool> CheckNzbFileHealth(NzbFile nzbFile, CancellationToken cancellationToken = default)
     {
-        var childCt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var tasks = nzbFile.Segments
-            .Select(x => x.MessageId.Value)
-            .Select(x => _client.StatAsync(x, childCt.Token))
-            .ToHashSet();
-
-        while (tasks.Count > 0)
+        using var childCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var childCt = childCts.Token;
+        
+        // Batch process segments in parallel groups to avoid overwhelming the connection pool
+        const int batchSize = 20; // Process 20 segments at a time
+        var segmentIds = nzbFile.Segments.Select(x => x.MessageId.Value).ToArray();
+        
+        for (int i = 0; i < segmentIds.Length; i += batchSize)
         {
-            var completedTask = await Task.WhenAny(tasks);
-            tasks.Remove(completedTask);
-
-            var completedResult = await completedTask;
-            if (completedResult.ResponseType != NntpStatResponseType.ArticleExists)
+            var batch = segmentIds.Skip(i).Take(batchSize);
+            var batchTasks = batch.Select(segmentId => _client.StatAsync(segmentId, childCt)).ToArray();
+            
+            try
             {
-                await childCt.CancelAsync();
+                var results = await Task.WhenAll(batchTasks);
+                
+                // Check if any segment in this batch is missing
+                if (results.Any(r => r.ResponseType != NntpStatResponseType.ArticleExists))
+                {
+                    return false;
+                }
+            }
+            catch (OperationCanceledException) when (childCt.IsCancellationRequested)
+            {
                 return false;
             }
         }

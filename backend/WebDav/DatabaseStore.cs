@@ -4,6 +4,7 @@ using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.Services;
+using Microsoft.Extensions.Logging;
 
 namespace NzbWebDAV.WebDav;
 
@@ -11,7 +12,8 @@ public class DatabaseStore(
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetProviderManager usenetClient,
-    QueueManager queueManager
+    QueueManager queueManager,
+    ILoggerFactory loggerFactory
 ) : IStore
 {
     private readonly DatabaseStoreCollection _root = new(
@@ -19,7 +21,8 @@ public class DatabaseStore(
         dbClient,
         configManager,
         usenetClient,
-        queueManager
+        queueManager,
+        loggerFactory
     );
 
     public async Task<IStoreItem?> GetItemAsync(string path, CancellationToken cancellationToken)

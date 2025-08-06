@@ -190,6 +190,10 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
 
             e.HasIndex(i => new { i.Category, i.Priority, i.CreatedAt })
                 .IsUnique(false);
+
+            // Index for PauseUntil queries (frequently used in GetTopQueueItem)
+            e.HasIndex(i => new { i.PauseUntil, i.Priority, i.CreatedAt })
+                .IsUnique(false);
         });
 
         // HistoryItem

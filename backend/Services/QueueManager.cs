@@ -2,7 +2,8 @@
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace NzbWebDAV.Services;
 
@@ -14,11 +15,17 @@ public class QueueManager : IDisposable
     private readonly CancellationTokenSource? _cancellationTokenSource;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ConfigManager _configManager;
+    private readonly ILogger<QueueManager> _logger;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly IServiceProvider _serviceProvider;
 
-    public QueueManager(UsenetProviderManager usenetClient, ConfigManager configManager)
+    public QueueManager(UsenetProviderManager usenetClient, ConfigManager configManager, ILogger<QueueManager> logger, ILoggerFactory loggerFactory, IServiceProvider serviceProvider)
     {
         _usenetClient = usenetClient;
         _configManager = configManager;
+        _logger = logger;
+        _loggerFactory = loggerFactory;
+        _serviceProvider = serviceProvider;
         _cancellationTokenSource = new CancellationTokenSource();
         _ = ProcessQueueAsync(_cancellationTokenSource.Token);
     }
@@ -44,21 +51,29 @@ public class QueueManager : IDisposable
 
     private async Task ProcessQueueAsync(CancellationToken ct)
     {
+        var emptyQueueCount = 0;
+        const int maxEmptyQueueCount = 12; // Max 60 seconds delay
+        
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                // get the next queue-item from the database
-                await using var dbContext = new DavDatabaseContext();
+                // get the next queue-item from the database using scoped context
+                using var scope = _serviceProvider.CreateScope();
+                var dbContext = scope.ServiceProvider.GetRequiredService<DavDatabaseContext>();
                 var dbClient = new DavDatabaseClient(dbContext);
                 var queueItem = await dbClient.GetTopQueueItem(ct);
                 if (queueItem is null)
                 {
-                    // if we're done with the queue, wait
-                    // five seconds before checking again.
-                    await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                    // Adaptive polling: increase delay when queue is consistently empty
+                    emptyQueueCount = Math.Min(emptyQueueCount + 1, maxEmptyQueueCount);
+                    var delaySeconds = Math.Min(5 + emptyQueueCount, 60); // 5-60 second range
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), ct);
                     continue;
                 }
+                
+                // Reset empty queue counter when we find work
+                emptyQueueCount = 0;
 
                 // process the queue-item
                 using var queueItemCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -79,7 +94,7 @@ public class QueueManager : IDisposable
             }
             catch (Exception e)
             {
-                Log.Error($"An unexpected error occured while processing the queue: {e.Message}");
+                _logger.LogError(e, "Unexpected error occurred while processing the queue: {ErrorMessage}", e.Message);
             }
         }
     }
@@ -92,8 +107,9 @@ public class QueueManager : IDisposable
     )
     {
         var progressHook = new Progress<int>();
+        var processorLogger = _loggerFactory.CreateLogger<QueueItemProcessor>();
         var task = new QueueItemProcessor(
-            queueItem, dbClient, _usenetClient, _configManager, progressHook, cts.Token
+            queueItem, dbClient, _usenetClient, _configManager, progressHook, cts.Token, processorLogger
         ).ProcessAsync();
         var inProgressQueueItem = new InProgressQueueItem()
         {

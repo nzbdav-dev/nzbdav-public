@@ -51,7 +51,7 @@ public class UsenetProviderManager : IDisposable
         }
 
         // Load each provider
-        _logger.LogInformation("Loading {Count} providers", providerCount);
+        _logger.LogDebug("Loading {Count} Usenet providers", providerCount);
         for (int i = 0; i < providerCount; i++)
         {
             try
@@ -59,7 +59,7 @@ public class UsenetProviderManager : IDisposable
                 var provider = LoadProvider(i);
                 if (provider != null)
                 {
-                    _logger.LogInformation("Successfully loaded provider {Index}: {Name} ({Host}:{Port})", 
+                    _logger.LogDebug("Loaded provider {Index}: {Name} ({Host}:{Port})", 
                         i, provider.ProviderName, provider.Host, provider.Port);
                     _providers.Add(provider);
                 }
@@ -73,7 +73,7 @@ public class UsenetProviderManager : IDisposable
         // Sort providers by priority
         _providers.Sort((a, b) => a.Priority.CompareTo(b.Priority));
         
-        _logger.LogInformation("Loaded {Count} Usenet providers", _providers.Count);
+        _logger.LogInformation("Initialized {Count} Usenet providers", _providers.Count);
     }
 
     private SingleUsenetProvider? LoadProvider(int index)
@@ -131,7 +131,7 @@ public class UsenetProviderManager : IDisposable
 
         if (providerConfigChanged)
         {
-            _logger.LogInformation("Provider configuration changed, reloading providers");
+            _logger.LogInformation("Usenet provider configuration changed, reloading providers");
             LoadProvidersFromConfig();
         }
     }
@@ -152,17 +152,17 @@ public class UsenetProviderManager : IDisposable
                 var isHealthy = await provider.CheckNzbFileHealthAsync(nzbFile, cancellationToken);
                 if (isHealthy)
                 {
-                    _logger.LogDebug("File health check successful with provider {ProviderName}", provider.ProviderName);
+                    _logger.LogDebug("Health check passed for provider '{ProviderName}'", provider.ProviderName);
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Health check failed with provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug(ex, "Health check failed for provider '{ProviderName}': {ErrorMessage}", provider.ProviderName, ex.Message);
             }
         }
 
-        _logger.LogWarning("File health check failed with all providers");
+        _logger.LogWarning("File health check failed with all {ProviderCount} providers", _providers.Count);
         return false;
     }
 
@@ -182,22 +182,22 @@ public class UsenetProviderManager : IDisposable
             try
             {
                 attemptedProviders.Add(provider.ProviderName);
-                _logger.LogDebug("Attempting to get file stream from provider {ProviderName} (priority {Priority})", 
+                _logger.LogDebug("Trying provider '{ProviderName}' (priority {Priority}) for file stream", 
                     provider.ProviderName, provider.Priority);
                 var stream = await provider.GetFileStreamAsync(nzbFile, concurrentConnections, cancellationToken);
-                _logger.LogDebug("✓ Successfully got file stream from provider {ProviderName} after {AttemptCount} attempts", 
+                _logger.LogDebug("File stream acquired from provider '{ProviderName}' (attempt {AttemptCount})", 
                     provider.ProviderName, attemptedProviders.Count);
                 return stream;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to get file stream from provider {ProviderName}: {ErrorMessage}", 
+                _logger.LogDebug(ex, "Provider '{ProviderName}' failed to provide file stream: {ErrorMessage}", 
                     provider.ProviderName, ex.Message);
                 lastException = ex;
             }
         }
 
-        _logger.LogError("All {ProviderCount} providers failed to provide file stream. Attempted providers: {AttemptedProviders}", 
+        _logger.LogError("All {ProviderCount} providers failed to provide file stream: {AttemptedProviders}", 
             attemptedProviders.Count, string.Join(", ", attemptedProviders));
         throw new InvalidOperationException($"All {attemptedProviders.Count} providers failed to provide file stream", lastException);
     }
@@ -221,12 +221,12 @@ public class UsenetProviderManager : IDisposable
             try
             {
                 var stream = provider.GetFileStream(segmentIds, fileSize, concurrentConnections);
-                _logger.LogDebug("Successfully got file stream from provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug("File stream acquired from provider '{ProviderName}'", provider.ProviderName);
                 return stream;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to get file stream from provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug(ex, "Provider '{ProviderName}' failed to provide file stream: {ErrorMessage}", provider.ProviderName, ex.Message);
                 lastException = ex;
             }
         }
@@ -248,12 +248,12 @@ public class UsenetProviderManager : IDisposable
             try
             {
                 var header = await provider.GetSegmentYencHeaderAsync(segmentId, cancellationToken);
-                _logger.LogDebug("Successfully got YENC header from provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug("YENC header acquired from provider '{ProviderName}'", provider.ProviderName);
                 return header;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to get YENC header from provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug(ex, "Provider '{ProviderName}' failed to provide YENC header: {ErrorMessage}", provider.ProviderName, ex.Message);
                 lastException = ex;
             }
         }
@@ -275,12 +275,12 @@ public class UsenetProviderManager : IDisposable
             try
             {
                 var size = await provider.GetFileSizeAsync(file, cancellationToken);
-                _logger.LogDebug("Successfully got file size from provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug("File size acquired from provider '{ProviderName}'", provider.ProviderName);
                 return size;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to get file size from provider {ProviderName}", provider.ProviderName);
+                _logger.LogDebug(ex, "Provider '{ProviderName}' failed to provide file size: {ErrorMessage}", provider.ProviderName, ex.Message);
                 lastException = ex;
             }
         }
@@ -315,6 +315,46 @@ public class UsenetProviderManager : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets health status information for all providers
+    /// </summary>
+    public IReadOnlyList<ProviderHealthStatus> GetProviderHealthStatus()
+    {
+        return _providers.Select((p, index) => new ProviderHealthStatus
+        {
+            ProviderId = p.ProviderId,
+            ProviderName = p.ProviderName,
+            Host = p.Host,
+            Port = p.Port,
+            IsHealthy = p.IsHealthy,
+            IsPrimary = index == _primaryProviderIndex,
+            Priority = p.Priority
+        }).ToList().AsReadOnly();
+    }
+    
+    /// <summary>
+    /// Resets health status for a specific provider
+    /// </summary>
+    public bool ResetProviderHealth(string providerId)
+    {
+        var provider = _providers.FirstOrDefault(p => p.ProviderId == providerId);
+        if (provider == null) return false;
+        
+        provider.ResetHealth();
+        return true;
+    }
+    
+    /// <summary>
+    /// Resets health status for all providers
+    /// </summary>
+    public void ResetAllProviderHealth()
+    {
+        foreach (var provider in _providers)
+        {
+            provider.ResetHealth();
+        }
+    }
+
     public void Dispose()
     {
         _configManager.OnConfigChanged -= OnConfigChanged;
@@ -325,4 +365,16 @@ public class UsenetProviderManager : IDisposable
         }
         _providers.Clear();
     }
+}
+
+public class ProviderHealthStatus
+{
+    public string ProviderId { get; init; } = string.Empty;
+    public string ProviderName { get; init; } = string.Empty;
+    public string Host { get; init; } = string.Empty;
+    public int Port { get; init; }
+    public bool IsHealthy { get; init; }
+    public bool IsPrimary { get; init; }
+    public int Priority { get; init; }
+}
 }

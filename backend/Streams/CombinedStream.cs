@@ -1,4 +1,6 @@
-﻿namespace NzbWebDAV.Streams;
+﻿using System.Buffers;
+
+namespace NzbWebDAV.Streams;
 
 public class CombinedStream(IEnumerable<Task<Stream>> streams) : Stream
 {
@@ -20,7 +22,7 @@ public class CombinedStream(IEnumerable<Task<Stream>> streams) : Stream
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        return ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
+        return ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
     }
 
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -58,16 +60,24 @@ public class CombinedStream(IEnumerable<Task<Stream>> streams) : Stream
     {
         if (count == 0) return;
         var remaining = count;
-        var throwaway = new byte[1024];
-        while (remaining > 0)
+        const int bufferSize = 65536; // 64KB buffer
+        var throwaway = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
         {
-            var toRead = (int)Math.Min(remaining, throwaway.Length);
-            var read = await ReadAsync(throwaway, 0, toRead);
-            remaining -= read;
-            if (read == 0) break;
-        }
+            while (remaining > 0)
+            {
+                var toRead = (int)Math.Min(remaining, throwaway.Length);
+                var read = await ReadAsync(throwaway, 0, toRead);
+                remaining -= read;
+                if (read == 0) break;
+            }
 
-        _position += count;
+            _position += count;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(throwaway);
+        }
     }
 
     public override void Flush()

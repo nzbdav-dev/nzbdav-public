@@ -12,11 +12,12 @@ public class CachingNntpClient(INntpClient client, MemoryCache cache) : Wrapping
 
     public override async Task<YencHeader> GetSegmentYencHeaderAsync(string segmentId, CancellationToken cancellationToken)
     {
-        var cacheKey = segmentId;
+        var cacheKey = $"yenc_header_{segmentId}";
         return (await cache.GetOrCreateAsync(cacheKey, cacheEntry =>
         {
-            cacheEntry.Size = 1;
-            cacheEntry.SlidingExpiration = TimeSpan.FromHours(3);
+            cacheEntry.Size = 100; // Increased cache size for headers (small objects)
+            cacheEntry.SlidingExpiration = TimeSpan.FromHours(12); // Increased cache time
+            cacheEntry.Priority = CacheItemPriority.High; // Headers are frequently accessed
             return _client.GetSegmentYencHeaderAsync(segmentId, cancellationToken);
         })!)!;
     }

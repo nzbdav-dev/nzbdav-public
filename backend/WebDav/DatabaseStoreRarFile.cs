@@ -8,7 +8,7 @@ using NzbWebDAV.Database.Models;
 using NzbWebDAV.Streams;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace NzbWebDAV.WebDav;
 
@@ -16,7 +16,8 @@ public class DatabaseStoreRarFile(
     DavItem davRarFile,
     DavDatabaseClient dbClient,
     UsenetProviderManager usenetClient,
-    ConfigManager configManager
+    ConfigManager configManager,
+    ILogger<DatabaseStoreRarFile> logger
 ) : BaseStoreItem
 {
     public override string Name => davRarFile.Name;
@@ -33,13 +34,13 @@ public class DatabaseStoreRarFile(
 
     protected override Task<DavStatusCode> UploadFromStreamAsync(UploadFromStreamRequest request)
     {
-        Log.Error("nzb-mounted files cannot be modified.");
+        logger.LogError("Attempted to modify read-only RAR file '{FileName}'", davRarFile.Name);
         return Task.FromResult(DavStatusCode.Forbidden);
     }
 
     protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
     {
-        Log.Error("nzb-mounted files cannot be copied.");
+        logger.LogError("Attempted to copy read-only RAR file '{FileName}'", davRarFile.Name);
         return Task.FromResult(new StoreItemResult(DavStatusCode.Forbidden));
     }
 }

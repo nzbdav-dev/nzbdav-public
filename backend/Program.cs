@@ -38,7 +38,12 @@ class Program
             .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.AspNetCore.DataProtection", LogEventLevel.Error)
             .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning)
-            .WriteTo.Console(theme: AnsiConsoleTheme.Code)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .MinimumLevel.Override("NzbWebDAV.Clients.UsenetProviderManager", LogEventLevel.Information)
+            .MinimumLevel.Override("NzbWebDAV.Clients.SingleUsenetProvider", LogEventLevel.Information)
+            .WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
+                theme: AnsiConsoleTheme.Code)
             .CreateLogger();
 
         // initialize database
@@ -56,7 +61,14 @@ class Program
         builder.Services
             .AddSingleton(configManager)
             .AddSingleton<UsenetProviderManager>()
-            .AddSingleton<QueueManager>()
+            .AddSingleton<QueueManager>(serviceProvider => 
+                new QueueManager(
+                    serviceProvider.GetRequiredService<UsenetProviderManager>(),
+                    serviceProvider.GetRequiredService<ConfigManager>(),
+                    serviceProvider.GetRequiredService<ILogger<QueueManager>>(),
+                    serviceProvider.GetRequiredService<ILoggerFactory>(),
+                    serviceProvider
+                ))
             .AddScoped<DavDatabaseContext>()
             .AddScoped<DavDatabaseClient>()
             .AddScoped<DatabaseStore>()

@@ -21,6 +21,8 @@ public class SingleUsenetProvider : IUsenetProvider
     private readonly string _pass;
     private readonly int _connections;
     private bool _isHealthy = true;
+    private DateTime? _lastFailureTime;
+    private readonly TimeSpan _recoveryInterval = TimeSpan.FromMinutes(5); // Try recovery every 5 minutes
 
     public SingleUsenetProvider(
         string providerId,
@@ -57,22 +59,34 @@ public class SingleUsenetProvider : IUsenetProvider
     public string ProviderName { get; }
     public string Host => _host;
     public int Port => _port;
-    public bool IsHealthy => _isHealthy;
+    public bool IsHealthy => _isHealthy || ShouldAttemptRecovery();
     public int Priority { get; }
+
+    /// <summary>
+    /// Manually resets the provider to healthy state, clearing any failure tracking.
+    /// </summary>
+    public void ResetHealth()
+    {
+        _isHealthy = true;
+        _lastFailureTime = null;
+        _logger.LogInformation("Provider '{ProviderName}' health manually reset", ProviderName);
+    }
 
     public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             await CreateNewConnection(_host, _port, _useSsl, _user, _pass, cancellationToken);
-            _isHealthy = true;
-            _logger.LogInformation("Connection test successful for provider {ProviderName}", ProviderName);
+            if (!_isHealthy || _lastFailureTime != null)
+                MarkAsRecovered("TestConnection");
+            else
+                _isHealthy = true;
+            _logger.LogDebug("Connection test successful for provider '{ProviderName}'", ProviderName);
             return true;
         }
         catch (Exception ex)
         {
-            _isHealthy = false;
-            _logger.LogWarning(ex, "Connection test failed for provider {ProviderName}", ProviderName);
+            HandleProviderException(ex, "Connection test");
             return false;
         }
     }
@@ -97,12 +111,15 @@ public class SingleUsenetProvider : IUsenetProvider
                 {
                     await childCt.CancelAsync();
                     // Missing articles don't affect provider health - this is content availability, not provider connectivity
-                    _logger.LogDebug("Article not found during health check for provider {ProviderName} - content unavailable", ProviderName);
+                    _logger.LogDebug("Health check found missing articles for provider '{ProviderName}' (content unavailable)", ProviderName);
                     return false;
                 }
             }
 
-            _isHealthy = true;
+            if (!_isHealthy || _lastFailureTime != null)
+                MarkAsRecovered("CheckNzbFileHealth");
+            else
+                _isHealthy = true;
             return true;
         }
         catch (Exception ex)
@@ -118,7 +135,10 @@ public class SingleUsenetProvider : IUsenetProvider
         {
             var firstSegmentId = nzbFile.GetOrderedSegmentIds().First();
             var firstSegmentStream = await _client.GetSegmentStreamAsync(firstSegmentId, cancellationToken);
-            _isHealthy = true;
+            if (!_isHealthy || _lastFailureTime != null)
+                MarkAsRecovered("GetFileStream");
+            else
+                _isHealthy = true;
             return new NzbFileStream(nzbFile, firstSegmentStream, _client, concurrentConnections);
         }
         catch (Exception ex)
@@ -132,7 +152,10 @@ public class SingleUsenetProvider : IUsenetProvider
     {
         try
         {
-            _isHealthy = true;
+            if (!_isHealthy || _lastFailureTime != null)
+                MarkAsRecovered("GetFileStream");
+            else
+                _isHealthy = true;
             return new NzbFileStream(segmentIds, fileSize, _client, concurrentConnections);
         }
         catch (Exception ex)
@@ -147,7 +170,10 @@ public class SingleUsenetProvider : IUsenetProvider
         try
         {
             var result = await _client.GetSegmentYencHeaderAsync(segmentId, cancellationToken);
-            _isHealthy = true;
+            if (!_isHealthy || _lastFailureTime != null)
+                MarkAsRecovered("GetSegmentYencHeader");
+            else
+                _isHealthy = true;
             return result;
         }
         catch (Exception ex)
@@ -162,7 +188,10 @@ public class SingleUsenetProvider : IUsenetProvider
         try
         {
             var result = await _client.GetFileSizeAsync(file, cancellationToken);
-            _isHealthy = true;
+            if (!_isHealthy || _lastFailureTime != null)
+                MarkAsRecovered("GetFileSize");
+            else
+                _isHealthy = true;
             return result;
         }
         catch (Exception ex)
@@ -174,7 +203,7 @@ public class SingleUsenetProvider : IUsenetProvider
 
     public void UpdateConnectionPool(string host, int port, bool useSsl, string user, string pass, int connections)
     {
-        _logger.LogInformation("Updating connection pool for provider {ProviderName}", ProviderName);
+        _logger.LogDebug("Updating connection pool for provider '{ProviderName}'", ProviderName);
         
         if (_client is CachingNntpClient cachingClient &&
             cachingClient.GetInnerClient() is MultiConnectionNntpClient multiClient)
@@ -185,6 +214,27 @@ public class SingleUsenetProvider : IUsenetProvider
     }
 
     /// <summary>
+    /// Determines if the provider should attempt recovery based on the last failure time.
+    /// </summary>
+    private bool ShouldAttemptRecovery()
+    {
+        if (_isHealthy) return false;
+        if (_lastFailureTime == null) return false;
+        
+        return DateTime.UtcNow - _lastFailureTime.Value >= _recoveryInterval;
+    }
+    
+    /// <summary>
+    /// Marks provider as recovered and resets failure tracking.
+    /// </summary>
+    private void MarkAsRecovered(string operation)
+    {
+        _isHealthy = true;
+        _lastFailureTime = null;
+        _logger.LogInformation("Provider '{ProviderName}' recovered after {Operation} succeeded", ProviderName, operation);
+    }
+    
+    /// <summary>
     /// Handles exceptions and determines whether they should affect provider health.
     /// Content-related issues (missing articles) don't mark provider as unhealthy.
     /// Connectivity/authentication issues do mark provider as unhealthy.
@@ -194,15 +244,19 @@ public class SingleUsenetProvider : IUsenetProvider
         if (IsContentException(ex))
         {
             // Content issues (missing articles, etc.) - don't affect provider health
-            _logger.LogWarning(ex, "{Operation} failed for provider {ProviderName} - content issue: {ErrorMessage}", 
+            _logger.LogDebug(ex, "{Operation} failed for provider '{ProviderName}' - content issue: {ErrorMessage}", 
                 operation, ProviderName, ex.Message);
         }
         else
         {
             // Provider connectivity/authentication issues - mark provider as unhealthy
-            _logger.LogError(ex, "{Operation} failed for provider {ProviderName} - provider issue: {ErrorMessage}", 
-                operation, ProviderName, ex.Message);
+            var wasHealthy = _isHealthy;
             _isHealthy = false;
+            _lastFailureTime = DateTime.UtcNow;
+            
+            var logLevel = wasHealthy ? LogLevel.Warning : LogLevel.Debug;
+            _logger.Log(logLevel, ex, "{Operation} failed for provider '{ProviderName}' - provider issue: {ErrorMessage}. Will retry in {RetryMinutes} minutes.", 
+                operation, ProviderName, ex.Message, _recoveryInterval.TotalMinutes);
         }
     }
 

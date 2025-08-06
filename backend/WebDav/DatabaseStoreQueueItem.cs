@@ -6,13 +6,14 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace NzbWebDAV.WebDav;
 
 public class DatabaseStoreQueueItem(
     QueueItem queueItem,
-    DavDatabaseClient dbClient
+    DavDatabaseClient dbClient,
+    ILogger<DatabaseStoreQueueItem> logger
 ) : BaseStoreItem
 {
     public QueueItem QueueItem => queueItem;
@@ -30,7 +31,7 @@ public class DatabaseStoreQueueItem(
 
     protected override Task<DavStatusCode> UploadFromStreamAsync(UploadFromStreamRequest request)
     {
-        Log.Error("Nzb document files cannot be modified.");
+        logger.LogError("Attempted to modify read-only NZB document '{FileName}'", queueItem.FileName);
         return Task.FromResult(DavStatusCode.Forbidden);
     }
 

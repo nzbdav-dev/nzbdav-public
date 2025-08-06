@@ -75,4 +75,9 @@ public interface IUsenetProvider : IDisposable
     /// Get the maximum number of connections configured for this provider
     /// </summary>
     int GetMaxConnectionCount();
+    
+    /// <summary>
+    /// Manually resets the provider to healthy state, clearing any failure tracking
+    /// </summary>
+    void ResetHealth();
 }

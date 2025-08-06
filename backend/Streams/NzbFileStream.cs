@@ -17,6 +17,10 @@ public class NzbFileStream(
     private YencHeaderStream? _firstSegmentStream;
     private CombinedStream? _innerStream;
     private bool _disposed;
+    
+    // Buffered seeking optimization
+    private long _streamStartOffset = 0;
+    private const long SeekBufferThreshold = 1024 * 1024; // 1MB seek buffer threshold
 
     public YencHeader? FirstYencHeader => _firstSegmentStream?.Header;
 
@@ -49,7 +53,7 @@ public class NzbFileStream(
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        return ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
+        return ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
     }
 
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -66,7 +70,30 @@ public class NzbFileStream(
             : origin == SeekOrigin.Current ? _position + offset
             : throw new InvalidOperationException("SeekOrigin must be Begin or Current.");
         if (_position == absoluteOffset) return _position;
+        
+        // Buffered seeking optimization: avoid recreating streams for small seeks
+        if (_innerStream != null && absoluteOffset >= _streamStartOffset && 
+            (absoluteOffset - _streamStartOffset) <= SeekBufferThreshold)
+        {
+            // Calculate how much to discard from current stream
+            var currentStreamPosition = _position - _streamStartOffset;
+            var targetStreamPosition = absoluteOffset - _streamStartOffset;
+            
+            if (targetStreamPosition >= currentStreamPosition)
+            {
+                // Forward seek within buffer - discard bytes
+                var bytesToDiscard = targetStreamPosition - currentStreamPosition;
+                if (bytesToDiscard < SeekBufferThreshold / 4) // Only for small forward seeks
+                {
+                    _position = absoluteOffset;
+                    return _position;
+                }
+            }
+        }
+        
+        // Large seek or backward seek - recreate stream
         _position = absoluteOffset;
+        _streamStartOffset = absoluteOffset;
         _innerStream?.Dispose();
         _innerStream = null;
         _firstSegmentStream?.Dispose();
@@ -120,6 +147,7 @@ public class NzbFileStream(
 
     private async Task<CombinedStream> GetFileStream(long rangeStart, CancellationToken cancellationToken)
     {
+        _streamStartOffset = rangeStart;
         if (rangeStart == 0) return GetCombinedStream(0, cancellationToken);
         var (firstSegmentIndex, header) = await SeekSegment(rangeStart, cancellationToken);
         var stream = GetCombinedStream(firstSegmentIndex, cancellationToken);

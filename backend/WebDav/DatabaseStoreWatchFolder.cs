@@ -9,6 +9,7 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.Services;
 using NzbWebDAV.WebDav.Requests;
+using Microsoft.Extensions.Logging;
 
 namespace NzbWebDAV.WebDav;
 
@@ -17,8 +18,9 @@ public class DatabaseStoreWatchFolder(
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetProviderManager usenetClient,
-    QueueManager queueManager
-) : DatabaseStoreCollection(davDirectory, dbClient, configManager, usenetClient, queueManager)
+    QueueManager queueManager,
+    ILoggerFactory loggerFactory
+) : DatabaseStoreCollection(davDirectory, dbClient, configManager, usenetClient, queueManager, loggerFactory)
 {
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {
@@ -26,13 +28,13 @@ public class DatabaseStoreWatchFolder(
             .Where(x => x.FileName == request.Name)
             .FirstOrDefaultAsync(request.CancellationToken);
         if (queueItem is null) return null;
-        return new DatabaseStoreQueueItem(queueItem, dbClient);
+        return new DatabaseStoreQueueItem(queueItem, dbClient, loggerFactory.CreateLogger<DatabaseStoreQueueItem>());
     }
 
     protected override async Task<IStoreItem[]> GetAllItemsAsync(CancellationToken cancellationToken)
     {
         return (await dbClient.GetQueueItems(null, 0, int.MaxValue, cancellationToken))
-            .Select(x => new DatabaseStoreQueueItem(x, dbClient))
+            .Select(x => new DatabaseStoreQueueItem(x, dbClient, loggerFactory.CreateLogger<DatabaseStoreQueueItem>()))
             .Select(IStoreItem (x) => x)
             .ToArray();
     }
@@ -58,7 +60,7 @@ public class DatabaseStoreWatchFolder(
             .Entries<QueueItem>()
             .Select(x => x.Entity)
             .First(x => x.Id.ToString() == response.NzoIds[0]);
-        return new StoreItemResult(DavStatusCode.Created, new DatabaseStoreQueueItem(queueItem, dbClient));
+        return new StoreItemResult(DavStatusCode.Created, new DatabaseStoreQueueItem(queueItem, dbClient, loggerFactory.CreateLogger<DatabaseStoreQueueItem>()));
     }
 
     protected override async Task<DavStatusCode> DeleteItemAsync(DeleteItemRequest request)

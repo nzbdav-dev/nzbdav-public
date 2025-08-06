@@ -148,7 +148,7 @@ public sealed class BufferToEndStream : Stream
         try
         {
             int read = ReadCoreAsync(tmp.AsMemory(0, buffer.Length), CancellationToken.None)
-                       .AsTask().GetAwaiter().GetResult();
+                       .GetAwaiter().GetResult();
             tmp.AsSpan(0, read).CopyTo(buffer);
             return read;
         }

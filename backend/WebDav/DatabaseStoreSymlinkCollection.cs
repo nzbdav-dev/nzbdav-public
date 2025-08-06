@@ -7,6 +7,7 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
+using Microsoft.Extensions.Logging;
 
 namespace NzbWebDAV.WebDav;
 
@@ -14,7 +15,8 @@ public class DatabaseStoreSymlinkCollection(
     DavItem davDirectory,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
-    string parentPath = ""
+    string parentPath = "",
+    ILoggerFactory? loggerFactory = null
 ) : BaseStoreCollection
 {
     public override string Name => davDirectory.Name;
@@ -106,11 +108,11 @@ public class DatabaseStoreSymlinkCollection(
         return davItem.Type switch
         {
             DavItem.ItemType.Directory =>
-                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager, RelativePath),
+                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager, RelativePath, loggerFactory),
             DavItem.ItemType.NzbFile =>
-                new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager),
+                new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager, loggerFactory?.CreateLogger<DatabaseStoreSymlinkFile>()!),
             DavItem.ItemType.RarFile =>
-                new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager),
+                new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager, loggerFactory?.CreateLogger<DatabaseStoreSymlinkFile>()!),
             _ => throw new ArgumentException("Unrecognized directory child type.")
         };
     }

@@ -12,6 +12,20 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     {
         return ctx.Items.Where(x => x.ParentId == dirId).ToListAsync(ct);
     }
+    
+    public async Task<Dictionary<Guid, DavNzbFile>> GetNzbFilesBatchAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        return await ctx.NzbFiles
+            .Where(f => ids.Contains(f.Id))
+            .ToDictionaryAsync(f => f.Id, ct);
+    }
+    
+    public async Task<Dictionary<Guid, DavRarFile>> GetRarFilesBatchAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        return await ctx.RarFiles
+            .Where(f => ids.Contains(f.Id))
+            .ToDictionaryAsync(f => f.Id, ct);
+    }
 
     public Task<DavItem?> GetDirectoryChildAsync(Guid dirId, string childName, CancellationToken ct = default)
     {
@@ -104,8 +118,13 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     {
         try
         {
-            Ctx.QueueItems.Remove(new QueueItem() { Id = Guid.Parse(id) });
-            await Ctx.SaveChangesAsync();
+            var queueId = Guid.Parse(id);
+            var existingItem = await Ctx.QueueItems.FirstOrDefaultAsync(q => q.Id == queueId);
+            if (existingItem != null)
+            {
+                Ctx.QueueItems.Remove(existingItem);
+                await Ctx.SaveChangesAsync();
+            }
         }
         catch (DbUpdateConcurrencyException e)
         {
@@ -119,8 +138,13 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     {
         try
         {
-            Ctx.HistoryItems.Remove(new HistoryItem() { Id = Guid.Parse(id) });
-            await Ctx.SaveChangesAsync();
+            var historyId = Guid.Parse(id);
+            var existingItem = await Ctx.HistoryItems.FirstOrDefaultAsync(h => h.Id == historyId);
+            if (existingItem != null)
+            {
+                Ctx.HistoryItems.Remove(existingItem);
+                await Ctx.SaveChangesAsync();
+            }
         }
         catch (DbUpdateConcurrencyException e)
         {

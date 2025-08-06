@@ -13,6 +13,19 @@ public class RarFileStream(
     private long _position = 0;
     private CombinedStream? _innerStream;
     private bool _disposed;
+    
+    // Cache cumulative offsets for efficient binary search
+    private readonly Lazy<long[]> _cumulativeOffsets = new(() =>
+    {
+        var offsets = new long[rarParts.Length];
+        long total = 0;
+        for (int i = 0; i < rarParts.Length; i++)
+        {
+            offsets[i] = total;
+            total += rarParts[i].ByteCount;
+        }
+        return offsets;
+    });
 
 
     public override void Flush()
@@ -22,7 +35,7 @@ public class RarFileStream(
 
     public override int Read(byte[] buffer, int offset, int count)
     {
-        return ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
+        return ReadAsync(buffer, offset, count, CancellationToken.None).GetAwaiter().GetResult();
     }
 
     public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -69,14 +82,37 @@ public class RarFileStream(
 
     private (int rarPartIndex, long rarPartOffset) SeekRarPart(long byteOffset)
     {
-        long offset = 0;
-        for (var i = 0; i < rarParts.Length; i++)
+        // Optimized seeking using precomputed cumulative offsets
+        if (rarParts.Length <= 10)
         {
-            var rarPart = rarParts[i];
-            var nextOffset = offset + rarPart.ByteCount;
-            if (byteOffset < nextOffset)
-                return (i, offset);
-            offset = nextOffset;
+            // Use linear search for small arrays (faster due to cache locality)
+            var offsets = _cumulativeOffsets.Value;
+            for (var i = 0; i < rarParts.Length; i++)
+            {
+                var nextOffset = offsets[i] + rarParts[i].ByteCount;
+                if (byteOffset < nextOffset)
+                    return (i, offsets[i]);
+            }
+        }
+        else
+        {
+            // Efficient binary search using precomputed cumulative offsets
+            var offsets = _cumulativeOffsets.Value;
+            int left = 0, right = rarParts.Length - 1;
+            
+            while (left <= right)
+            {
+                int mid = left + (right - left) / 2;
+                long partStart = offsets[mid];
+                long partEnd = partStart + rarParts[mid].ByteCount;
+                
+                if (byteOffset < partStart)
+                    right = mid - 1;
+                else if (byteOffset >= partEnd)
+                    left = mid + 1;
+                else
+                    return (mid, partStart);
+            }
         }
 
         throw new ArgumentOutOfRangeException(nameof(byteOffset));
