@@ -182,12 +182,23 @@ public abstract class BaseStoreCollection : IStoreCollection
     // helpers
     public async Task<IStoreItem?> ResolvePath(string path, CancellationToken cancellationToken)
     {
-        var segments = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (string.IsNullOrEmpty(path))
+            return this;
+
+        var segments = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+            return this;
+
         IStoreCollection current = this;
         for (var i = 0; i < segments.Length; i++)
         {
-            var nextItem = await current.GetItemAsync(segments[i], cancellationToken);
-            if (nextItem is null) return null;
+            var segment = segments[i];
+            if (string.IsNullOrEmpty(segment))
+                continue;
+
+            var nextItem = await current.GetItemAsync(segment, cancellationToken);
+            if (nextItem is null) 
+                return null;
 
             if (i == segments.Length - 1)
                 return nextItem;

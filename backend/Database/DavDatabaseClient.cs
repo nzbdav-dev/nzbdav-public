@@ -13,6 +13,20 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
         return ctx.Items.Where(x => x.ParentId == dirId).ToListAsync(ct);
     }
 
+    public Task<List<DavItem>> GetDirectoryChildrenAsync(Guid dirId, int skip, int take, CancellationToken ct = default)
+    {
+        return ctx.Items.Where(x => x.ParentId == dirId)
+            .OrderBy(x => x.Name)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
+    public Task<int> GetDirectoryChildrenCountAsync(Guid dirId, CancellationToken ct = default)
+    {
+        return ctx.Items.CountAsync(x => x.ParentId == dirId, ct);
+    }
+
     public Task<DavItem?> GetDirectoryChildAsync(Guid dirId, string childName, CancellationToken ct = default)
     {
         return ctx.Items.FirstOrDefaultAsync(x => x.ParentId == dirId && x.Name == childName, ct);
@@ -56,6 +70,48 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     public async Task<DavNzbFile?> GetNzbFileAsync(Guid id, CancellationToken ct = default)
     {
         return await ctx.NzbFiles.FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
+
+    // path resolution
+    public async Task<DavItem?> ResolvePathAsync(string path, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(path) || path == "/")
+            return DavItem.Root;
+
+        var segments = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+            return DavItem.Root;
+
+        // Handle root-level directories
+        if (segments.Length == 1)
+        {
+            return segments[0] switch
+            {
+                "nzbs" => DavItem.NzbFolder,
+                "content" => DavItem.ContentFolder,
+                "completed-symlinks" => DavItem.SymlinkFolder,
+                _ => await GetDirectoryChildAsync(DavItem.Root.Id, segments[0], ct)
+            };
+        }
+
+        // For deeper paths, use a more efficient approach
+        var currentId = segments[0] switch
+        {
+            "nzbs" => DavItem.NzbFolder.Id,
+            "content" => DavItem.ContentFolder.Id,
+            "completed-symlinks" => DavItem.SymlinkFolder.Id,
+            _ => DavItem.Root.Id
+        };
+
+        for (int i = 1; i < segments.Length; i++)
+        {
+            var child = await GetDirectoryChildAsync(currentId, segments[i], ct);
+            if (child == null)
+                return null;
+            currentId = child.Id;
+        }
+
+        return await ctx.Items.FirstOrDefaultAsync(x => x.Id == currentId, ct);
     }
 
     // queue

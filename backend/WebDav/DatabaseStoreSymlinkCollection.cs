@@ -14,6 +14,7 @@ public class DatabaseStoreSymlinkCollection(
     DavItem davDirectory,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
+    IMemoryCache memoryCache,
     string parentPath = ""
 ) : BaseStoreCollection
 {
@@ -23,6 +24,7 @@ public class DatabaseStoreSymlinkCollection(
     private string RelativePath => davDirectory.Id == DavItem.SymlinkFolder.Id ? "" : Path.Join(parentPath, Name);
     private Guid TargetId => davDirectory.Id == DavItem.SymlinkFolder.Id ? DavItem.ContentFolder.Id : davDirectory.Id;
     private DeletedFileManager DeletedFiles => new(davDirectory.Id);
+    private string CacheKey => $"symlink_children_{TargetId}";
 
     protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
     {
@@ -40,10 +42,32 @@ public class DatabaseStoreSymlinkCollection(
 
     protected override async Task<IStoreItem[]> GetAllItemsAsync(CancellationToken cancellationToken)
     {
-        return (await dbClient.GetDirectoryChildrenAsync(TargetId, cancellationToken))
-            .Select(GetItem)
-            .Where(x => !DeletedFiles.IsDeleted(x.Name)) // must appear after Select(GetItem) for correct Name.
-            .ToArray();
+        return await memoryCache.GetOrCreateAsync(CacheKey, async entry =>
+        {
+            entry.SlidingExpiration = TimeSpan.FromMinutes(5);
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15);
+            
+            // For large directories, use pagination to avoid memory issues
+            var totalCount = await dbClient.GetDirectoryChildrenCountAsync(TargetId, cancellationToken);
+            if (totalCount > 1000)
+            {
+                var allItems = new List<IStoreItem>();
+                const int pageSize = 500;
+                
+                for (int skip = 0; skip < totalCount; skip += pageSize)
+                {
+                    var pageItems = await dbClient.GetDirectoryChildrenAsync(TargetId, skip, pageSize, cancellationToken);
+                    allItems.AddRange(pageItems.Select(GetItem).Where(x => !DeletedFiles.IsDeleted(x.Name)));
+                }
+                
+                return allItems.ToArray();
+            }
+            
+            return (await dbClient.GetDirectoryChildrenAsync(TargetId, cancellationToken))
+                .Select(GetItem)
+                .Where(x => !DeletedFiles.IsDeleted(x.Name))
+                .ToArray();
+        });
     }
 
     protected override Task<StoreItemResult> CreateItemAsync(CreateItemRequest request)
@@ -106,7 +130,7 @@ public class DatabaseStoreSymlinkCollection(
         return davItem.Type switch
         {
             DavItem.ItemType.Directory =>
-                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager, RelativePath),
+                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager, memoryCache, RelativePath),
             DavItem.ItemType.NzbFile =>
                 new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager),
             DavItem.ItemType.RarFile =>
