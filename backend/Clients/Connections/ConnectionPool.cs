@@ -21,17 +21,19 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
     /* -------------------------------- configuration -------------------------------- */
 
     public TimeSpan IdleTimeout { get; }
+    public event EventHandler<ConnectionPoolChangedEventArgs>? OnConnectionPoolChanged;
 
     private readonly Func<CancellationToken, ValueTask<T>> _factory;
+    private readonly int _maxConnections;
 
     /* --------------------------------- state --------------------------------------- */
 
-    private readonly ConcurrentStack<Pooled> _available = new();
+    private readonly ConcurrentStack<Pooled> _idleConnections = new();
     private readonly SemaphoreSlim _gate;
     private readonly CancellationTokenSource _sweepCts = new();
     private readonly Task _sweeperTask; // keeps timer alive
 
-    private long _live; // number of connections currently alive
+    private int _live; // number of connections currently alive
     private int _disposed; // 0 == false, 1 == true
 
     /* ------------------------------------------------------------------------------ */
@@ -48,6 +50,7 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
                    ?? throw new ArgumentNullException(nameof(connectionFactory));
         IdleTimeout = idleTimeout ?? TimeSpan.FromMinutes(1);
 
+        _maxConnections = maxConnections;
         _gate = new SemaphoreSlim(maxConnections, maxConnections);
         _sweeperTask = Task.Run(SweepLoop); // background idle-reaper
     }
@@ -72,14 +75,18 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
         }
 
         // Try to reuse an existing idle connection.
-        while (_available.TryPop(out var item))
+        while (_idleConnections.TryPop(out var item))
         {
             if (!item.IsExpired(IdleTimeout))
+            {
+                TriggerConnectionPoolChangedEvent();
                 return BuildLock(item.Connection);
+            }
 
             // Stale – destroy and continue looking.
             await DisposeConnectionAsync(item.Connection).ConfigureAwait(false);
             Interlocked.Decrement(ref _live);
+            TriggerConnectionPoolChangedEvent();
         }
 
         // Need a fresh connection.
@@ -95,6 +102,7 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
         }
 
         Interlocked.Increment(ref _live);
+        TriggerConnectionPoolChangedEvent();
         return BuildLock(conn);
 
         ConnectionLock<T> BuildLock(T c)
@@ -122,17 +130,28 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
         {
             _ = DisposeConnectionAsync(connection); // fire & forget
             Interlocked.Decrement(ref _live);
+            TriggerConnectionPoolChangedEvent();
             return;
         }
 
-        _available.Push(new Pooled(connection, Environment.TickCount64));
+        _idleConnections.Push(new Pooled(connection, Environment.TickCount64));
         _gate.Release();
+        TriggerConnectionPoolChangedEvent();
     }
 
     private ValueTask ReturnAsync(T connection)
     {
         Return(connection);
         return ValueTask.CompletedTask;
+    }
+
+    private void TriggerConnectionPoolChangedEvent()
+    {
+        OnConnectionPoolChanged?.Invoke(this, new ConnectionPoolChangedEventArgs(
+            _live,
+            _idleConnections.Count,
+            _maxConnections
+        ));
     }
 
     /* =================== idle sweeper (background) ================================= */
@@ -155,13 +174,15 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
     {
         var now = Environment.TickCount64;
         var survivors = new List<Pooled>();
+        var isAnyConnectionFreed = false;
 
-        while (_available.TryPop(out var item))
+        while (_idleConnections.TryPop(out var item))
         {
             if (item.IsExpired(IdleTimeout, now))
             {
                 await DisposeConnectionAsync(item.Connection).ConfigureAwait(false);
                 Interlocked.Decrement(ref _live);
+                isAnyConnectionFreed = true;
             }
             else
             {
@@ -171,7 +192,10 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
 
         // Preserve original LIFO order.
         for (int i = survivors.Count - 1; i >= 0; i--)
-            _available.Push(survivors[i]);
+            _idleConnections.Push(survivors[i]);
+
+        if (isAnyConnectionFreed)
+            TriggerConnectionPoolChangedEvent();
     }
 
     /* ------------------------- dispose helpers ------------------------------------ */
@@ -207,7 +231,7 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
         }
 
         // Drain and dispose cached items.
-        while (_available.TryPop(out var item))
+        while (_idleConnections.TryPop(out var item))
             await DisposeConnectionAsync(item.Connection).ConfigureAwait(false);
 
         _sweepCts.Dispose();
@@ -221,5 +245,13 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
     public void Dispose()
     {
         _ = DisposeAsync().AsTask(); // fire-and-forget synchronous path
+    }
+
+    public sealed class ConnectionPoolChangedEventArgs(int live, int idle, int max) : EventArgs
+    {
+        public int Live { get; } = live;
+        public int Idle { get; } = idle;
+        public int Max { get; } = max;
+        public int Active => Live - Idle;
     }
 }
