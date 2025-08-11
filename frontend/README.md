@@ -71,7 +71,7 @@ Make sure to deploy the output of `npm run build`
 ```
 ├── package.json
 ├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── server.js
+├── server.ts
 ├── build/
 │   ├── client/    # Static assets
 │   └── server/    # Server-side code

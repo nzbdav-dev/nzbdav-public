@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "cross-env NODE_ENV=development PORT=5173 node server.js",
-    "start": "node server.js",
+    "build:server": "tsc -p tsconfig.node.json --outDir dist-node",
+    "dev": "cross-env NODE_ENV=development PORT=5173 tsx server.js",
+    "start": "node dist-node/server.js",
     "typecheck": "react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -40,6 +41,7 @@
     "@types/react-dom": "^19.1.2",
     "cross-env": "^7.0.3",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.20.3",
     "typed-css-modules": "^0.9.1",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",

@@ -8,6 +8,7 @@ COPY ./frontend ./
 
 RUN npm install
 RUN npm run build
+RUN npm run build:server
 RUN npm prune --omit=dev
 
 # -------- Stage 2: Build backend --------
@@ -33,7 +34,7 @@ RUN mkdir /config \
 # Copy frontend
 COPY --from=frontend-build /frontend/node_modules ./frontend/node_modules
 COPY --from=frontend-build /frontend/package.json ./frontend/package.json
-COPY --from=frontend-build /frontend/server.js ./frontend/server.js
+COPY --from=frontend-build /frontend/dist-node/server.js ./frontend/dist-node/server.js
 COPY --from=frontend-build /frontend/build ./frontend/build
 
 # Copy backend
