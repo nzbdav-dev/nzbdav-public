@@ -2,6 +2,7 @@ import { Form, Link, useLocation, useNavigation } from "react-router";
 import styles from "./left-navigation.module.css";
 import { className } from "~/utils/styling";
 import type React from "react";
+import { LiveUsenetConnections } from "../live-usenet-connections/live-usenet-connections";
 
 export function LeftNavigation() {
     return (
@@ -18,6 +19,7 @@ export function LeftNavigation() {
                 <div className={styles["settings-icon"]} />
                 <div className={styles.title}>Settings</div>
             </Item>
+            <LiveUsenetConnections />
 
             <div className={styles.footer}>
                 <div className={styles["footer-item"]}>
