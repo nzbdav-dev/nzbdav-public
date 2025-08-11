@@ -2,6 +2,7 @@ import "react-router";
 import { createRequestHandler } from "@react-router/express";
 import express from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import { websocketServer } from "./websocket.server";
 
 declare module "react-router" {
   interface AppLoadContext {
@@ -10,6 +11,7 @@ declare module "react-router" {
 }
 
 export const app = express();
+export const initializeWebsocketServer = websocketServer.initialize;
 
 // Proxy all webdav and api requests to the backend
 const forwardToBackend = createProxyMiddleware({

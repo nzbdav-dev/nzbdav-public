@@ -26,7 +26,8 @@
     "react-dropzone": "^14.3.8",
     "react-router": "^7.5.3",
     "remix-auth": "^4.2.0",
-    "remix-auth-form": "^3.0.0"
+    "remix-auth-form": "^3.0.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@react-router/dev": "^7.5.3",
@@ -39,6 +40,7 @@
     "@types/node": "^20",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@types/ws": "^8.18.1",
     "cross-env": "^7.0.3",
     "tailwindcss": "^4.1.4",
     "tsx": "^4.20.3",
