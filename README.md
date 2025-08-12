@@ -74,7 +74,6 @@ pass = // your rclone-obscured password https://rclone.org/commands/rclone_obscu
 
 
 Below are the RClone settings I use.  
-This setup disables Rclone's caching and streams directly, since the  end-client (Plex/VLC/Chrome/etc) will already buffer-ahead anyway
 ```
 --vfs-cache-mode=full
 --buffer-size=1024
