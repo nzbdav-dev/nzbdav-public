@@ -32,16 +32,14 @@ export default function Index({ loaderData, actionData }: Route.ComponentProps) 
     const submitButtonText = isLoading ? "Logging in..." : "Login";
 
     return (
-        <>
-            <Form className={styles["container"]} method="POST">
-                <img className={styles["logo"]} src="/logo.svg"></img>
-                <div className={styles["title"]}>Nzb DAV</div>
-                <Alert className={styles["error"]} show={showError} variant="danger">{pageData.loginError}</Alert>
-                <BootstrapForm.Control name="username" type="text" placeholder="Username" autoFocus />
-                <BootstrapForm.Control name="password" type="password" placeholder="Password" />
-                <Button type="submit" variant="primary" disabled={submitButtonDisabled}>{submitButtonText}</Button>
-            </Form>
-        </>
+        <Form className={styles["container"]} method="POST">
+            <img className={styles["logo"]} src="/logo.svg"></img>
+            <div className={styles["title"]}>Nzb DAV</div>
+            <Alert className={styles["error"]} show={showError} variant="danger">{pageData.loginError}</Alert>
+            <BootstrapForm.Control name="username" type="text" placeholder="Username" autoFocus />
+            <BootstrapForm.Control name="password" type="password" placeholder="Password" />
+            <Button type="submit" variant="primary" disabled={submitButtonDisabled}>{submitButtonText}</Button>
+        </Form>
     );
 }
 

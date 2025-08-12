@@ -1,39 +1,70 @@
-﻿namespace NzbWebDAV.Utils;
+﻿using NzbWebDAV.Exceptions;
+
+namespace NzbWebDAV.Utils;
 
 public static class InterpolationSearch
 {
-    public static async Task<int> Find
+    public static async Task<Result> Find
     (
-        int startInclusive,
-        int endExclusive,
-        Func<int, Task<double?>> getGuessResult
+        long searchByte,
+        Range indexRangeToSearch,
+        Range byteRangeToSearch,
+        Func<int, Task<Range>> getByteRangeOfGuessedIndex,
+        CancellationToken cancellationToken
     )
     {
-        var guess = (startInclusive + endExclusive) / 2;
-        return await Find(guess, startInclusive, endExclusive, getGuessResult);
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // make sure our search is even possible.
+            if (!byteRangeToSearch.Contains(searchByte) || indexRangeToSearch.Count <= 0)
+                throw new SeekPositionNotFoundException($"Corrupt file. Cannot find byte position {searchByte}.");
+
+            // make a guess
+            var searchByteFromStart = searchByte - byteRangeToSearch.StartInclusive;
+            var bytesPerIndex = (double)byteRangeToSearch.Count / indexRangeToSearch.Count;
+            var guessFromStart = (long)Math.Floor(searchByteFromStart / bytesPerIndex);
+            var guessedIndex = (int)(indexRangeToSearch.StartInclusive + guessFromStart);
+            var byteRangeOfGuessedIndex = await getByteRangeOfGuessedIndex(guessedIndex);
+
+            // make sure the result is within the range of our search space
+            if (!byteRangeOfGuessedIndex.IsContainedWithin(byteRangeToSearch))
+                throw new SeekPositionNotFoundException($"Corrupt file. Cannot find byte position {searchByte}.");
+
+            // if we guessed too low, adjust our lower bounds in order to search higher next time
+            if (byteRangeOfGuessedIndex.EndExclusive <= searchByte)
+            {
+                indexRangeToSearch = indexRangeToSearch with { StartInclusive = guessedIndex + 1 };
+                byteRangeToSearch = byteRangeToSearch with { StartInclusive = byteRangeOfGuessedIndex.EndExclusive };
+            }
+
+            // if we guessed too high, adjust our upper bounds in order to search lower next time
+            else if (byteRangeOfGuessedIndex.StartInclusive > searchByte)
+            {
+                indexRangeToSearch = indexRangeToSearch with { EndExclusive = guessedIndex };
+                byteRangeToSearch = byteRangeToSearch with { EndExclusive = byteRangeOfGuessedIndex.StartInclusive };
+            }
+
+            // if we guessed correctly, we're done
+            else if (byteRangeOfGuessedIndex.Contains(searchByte))
+                return new Result(guessedIndex, byteRangeOfGuessedIndex);
+        }
     }
 
-    private static async Task<int> Find
-    (
-        int guess,
-        int startInclusive,
-        int endExclusive,
-        Func<int, Task<double?>> guessResult
-    )
+    public record Range(long StartInclusive, long EndExclusive)
     {
-        var result = await guessResult(guess);
-        if (result == null) return guess;
-        var newGuess = (int)((guess - startInclusive) * result.Value) + startInclusive;
-        if (newGuess >= endExclusive) newGuess = endExclusive - 1;
-        if (result < 1 && newGuess >= guess) newGuess--;
-        if (result > 1 && newGuess <= guess) newGuess++;
-        if (newGuess < 0 || newGuess >= endExclusive)
-            throw new Exception("Could not find through interpolation search.");
+        public long Count => EndExclusive - StartInclusive;
 
-        // Add termination condition to prevent infinite recursion
-        if (newGuess == guess || Math.Abs(newGuess - guess) <= 1)
-            return guess;
+        public bool Contains(long value) =>
+            value >= StartInclusive && value < EndExclusive;
 
-        return await Find(newGuess, startInclusive, endExclusive, guessResult);
+        public bool Contains(Range range) =>
+            range.StartInclusive >= StartInclusive && range.EndExclusive <= EndExclusive;
+
+        public bool IsContainedWithin(Range range) =>
+            range.Contains(this);
     }
+
+    public record Result(int FoundIndex, Range FoundByteRange);
 }

@@ -9,11 +9,9 @@ namespace NzbWebDAV.Api.Controllers.GetWebdavItem;
 
 [ApiController]
 [Route("view/{*path}")]
-public class ListWebdavDirectoryController(DatabaseStore store) : BaseApiController
+public class ListWebdavDirectoryController(DatabaseStore store) : ControllerBase
 {
     private static readonly FileExtensionContentTypeProvider MimeTypeProvider = new();
-
-    protected override bool RequiresAuthentication => false;
 
     private async Task<Stream> GetWebdavItem(GetWebdavItemRequest request)
     {
@@ -52,12 +50,19 @@ public class ListWebdavDirectoryController(DatabaseStore store) : BaseApiControl
         return stream;
     }
 
-    protected override async Task<IActionResult> HandleRequest()
+    [HttpGet]
+    public async Task HandleRequest()
     {
-        var request = new GetWebdavItemRequest(HttpContext);
-        await using var response = await GetWebdavItem(request);
-        await response.CopyToAsync(Response.Body, bufferSize: 1024, HttpContext.RequestAborted);
-        return new EmptyResult();
+        try
+        {
+            var request = new GetWebdavItemRequest(HttpContext);
+            await using var response = await GetWebdavItem(request);
+            await response.CopyToAsync(Response.Body, bufferSize: 1024, HttpContext.RequestAborted);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            Response.StatusCode = 401;
+        }
     }
 
     private static string GetContentType(string item)

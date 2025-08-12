@@ -7,29 +7,32 @@ using SharpCompress.Common.Rar.Headers;
 using SharpCompress.IO;
 using SharpCompress.Readers;
 using Usenet.Nzb;
-using Usenet.Yenc;
 
-namespace NzbWebDAV.Services.FileProcessors;
+namespace NzbWebDAV.Queue.FileProcessors;
 
-public class RarProcessor(NzbFile nzbFile, UsenetStreamingClient usenet, CancellationToken ct) : BaseProcessor
+public class RarProcessor(
+    NzbFile nzbFile,
+    string filename,
+    UsenetStreamingClient usenet,
+    CancellationToken ct
+) : BaseProcessor
 {
-    public static bool CanProcess(NzbFile file)
+    public static bool CanProcess(string filename)
     {
-        return IsRarFile(file.GetSubjectFileName());
+        return IsRarFile(filename);
     }
 
-    public override async Task<BaseProcessor.Result> ProcessAsync()
+    public override async Task<BaseProcessor.Result?> ProcessAsync()
     {
         try
         {
             await using var stream = await usenet.GetFileStream(nzbFile, concurrentConnections: 1, ct);
-            var filename = GetFileName(stream.FirstYencHeader);
             return new Result()
             {
                 NzbFile = nzbFile,
                 PartSize = stream.Length,
-                ArchiveName = GetArchiveName(filename),
-                PartNumber = GetPartNumber(filename),
+                ArchiveName = GetArchiveName(),
+                PartNumber = GetPartNumber(),
                 StoredFileSegments = GetRarHeaders(stream)
                     .Select(x => new StoredFileSegment()
                     {
@@ -52,21 +55,7 @@ public class RarProcessor(NzbFile nzbFile, UsenetStreamingClient usenet, Cancell
             || Regex.IsMatch(filename, @"\.r(\d+)$", RegexOptions.IgnoreCase);
     }
 
-    private string GetFileName(YencHeader? header)
-    {
-        // try getting the filename from subject and header
-        var fromSubject = nzbFile.GetSubjectFileName();
-        var fromHeader = header?.FileName ?? "";
-
-        // if only one of them ends in .rar, or .rXX, return that one
-        if (IsRarFile(fromSubject) && !IsRarFile(fromHeader)) return fromSubject;
-        if (IsRarFile(fromHeader) && !IsRarFile(fromSubject)) return fromHeader;
-
-        // if both end in .rar or .rXX, return whichever has a higher part number
-        return new[] { fromSubject, fromHeader }.MaxBy(GetPartNumber)!;
-    }
-
-    private string GetArchiveName(string filename)
+    private string GetArchiveName()
     {
         // remove the .rar extension and remove the .partXX if it exists
         var sansExtension = Path.GetFileNameWithoutExtension(filename);
@@ -74,7 +63,7 @@ public class RarProcessor(NzbFile nzbFile, UsenetStreamingClient usenet, Cancell
         return sansExtension;
     }
 
-    private int GetPartNumber(string filename)
+    private int GetPartNumber()
     {
         // handle the `.partXXX.rar` format
         var partMatch = Regex.Match(filename, @"\.part(\d+)\.rar$", RegexOptions.IgnoreCase);

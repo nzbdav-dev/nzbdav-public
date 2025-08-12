@@ -1,6 +1,6 @@
-﻿using NzbWebDAV.Services.FileProcessors;
+﻿using NzbWebDAV.Queue.FileProcessors;
 
-namespace NzbWebDAV.Services.FileAggregators;
+namespace NzbWebDAV.Queue.FileAggregators;
 
 public interface IAggregator
 {

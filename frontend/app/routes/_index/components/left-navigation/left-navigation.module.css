@@ -25,15 +25,20 @@
     color: inherit;
 }
 
-@media not (pointer: coarse), (min-width: 900px)  {
-    .item:hover {
-        background-color: #002b36;
+@media not (pointer: coarse), (min-width: 900px) {
+    .item:not(.selected):hover {
+        background-color: hsl(192, 100%, 8%);
         cursor: pointer;
     }
 }
 
-.item:active {
-    background-color: #073642;
+.item:not(.selected):active {
+    background-color: hsl(192, 80%, 14%);
+}
+
+.selected {
+    background-color: hsl(192, 100%, 11%);
+    user-select: none;
 }
 
 .queue-icon {

@@ -1,7 +1,8 @@
-import { useState } from "react";
-import styles from "./layout.module.css";
+import { useCallback, useEffect, useState } from "react";
+import styles from "./page-layout.module.css";
+import { useNavigation } from "react-router";
 
-export type LayoutProps = {
+export type PageLayoutProps = {
     topNavComponent: (props: RequiredTopNavProps) => React.ReactNode,
     leftNavChild: React.ReactNode,
     bodyChild: React.ReactNode,
@@ -12,18 +13,24 @@ export type RequiredTopNavProps = {
     onHamburgerMenuClick: () => void,
 }
 
-export function Layout(props: LayoutProps) {
+export function PageLayout(props: PageLayoutProps) {
     // data
     const [isHamburgerMenuOpen, setIsHamburgerMenuOpen] = useState(false);
+    const isNavigating = Boolean(useNavigation().location);
+
+    // close hamburger-menu when done navigating
+    useEffect(() => {
+        !isNavigating && setIsHamburgerMenuOpen(false);
+    }, [isNavigating, setIsHamburgerMenuOpen]);
 
     // events
-    const onHamburgerMenuClick = function () {
+    const onHamburgerMenuClick = useCallback(function () {
         setIsHamburgerMenuOpen(!isHamburgerMenuOpen)
-    }
+    }, [setIsHamburgerMenuOpen, isHamburgerMenuOpen]);
 
-    const onBodyClick = function() {
+    const onBodyClick = useCallback(function () {
         setIsHamburgerMenuOpen(false);
-    }
+    }, [setIsHamburgerMenuOpen]);
 
     let containerClassName = styles["container"];
     if (isHamburgerMenuOpen) containerClassName += " " + styles["hamburger-open"];

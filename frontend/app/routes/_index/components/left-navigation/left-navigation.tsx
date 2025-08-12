@@ -1,25 +1,25 @@
-import { Form, Link } from "react-router";
+import { Form, Link, useLocation, useNavigation } from "react-router";
 import styles from "./left-navigation.module.css";
+import { className } from "~/utils/styling";
+import type React from "react";
+import { LiveUsenetConnections } from "../live-usenet-connections/live-usenet-connections";
 
-export type LefNavigationProps = {
-}
-
-
-export function LeftNavigation(props: LefNavigationProps) {
+export function LeftNavigation() {
     return (
         <div className={styles.container}>
-            <Link className={styles.item} to={"/queue"}>
+            <Item target="/queue">
                 <div className={styles["queue-icon"]} />
                 <div className={styles.title}>Queue & History</div>
-            </Link>
-            <Link className={styles.item} to={"/explore"}>
+            </Item>
+            <Item target="/explore">
                 <div className={styles["explore-icon"]} />
                 <div className={styles.title}>Dav Explore</div>
-            </Link>
-            <Link className={styles.item} to={"/settings"}>
+            </Item>
+            <Item target="/settings">
                 <div className={styles["settings-icon"]} />
                 <div className={styles.title}>Settings</div>
-            </Link>
+            </Item>
+            <LiveUsenetConnections />
 
             <div className={styles.footer}>
                 <div className={styles["footer-item"]}>
@@ -45,4 +45,17 @@ export function LeftNavigation(props: LefNavigationProps) {
             </div>
         </div>
     );
+}
+
+function Item({ target, children }: { target: string, children: React.ReactNode }) {
+    const location = useLocation();
+    const navigation = useNavigation();
+    const pathname = navigation.location?.pathname ?? location.pathname;
+    const isSelected = pathname.startsWith(target);
+    const classes = [styles.item, isSelected ? styles.selected : null];
+    return <>
+        <Link {...className(classes)} to={target}>
+            {children}
+        </Link>
+    </>;
 }

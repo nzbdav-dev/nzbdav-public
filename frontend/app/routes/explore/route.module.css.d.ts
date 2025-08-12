@@ -6,6 +6,7 @@ declare const styles: {
   readonly "item": string;
   readonly "item-name": string;
   readonly "video-icon": string;
+  readonly "loading": string;
 };
 export = styles;
 

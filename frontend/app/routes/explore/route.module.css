@@ -4,6 +4,9 @@
     padding: 30px 35px 20px 35px;
     color: #93a1a1;
     font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
 }
 
 .item {
@@ -86,4 +89,11 @@
 .item-name {
     word-break: break-all;
     overflow-wrap: break-word;
+}
+
+.loading {
+    width: calc(100% - 75px);
+    flex-grow: 1;
+    position: unset;
+    min-height: unset;
 }

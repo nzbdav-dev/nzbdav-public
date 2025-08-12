@@ -39,7 +39,7 @@ public class AddFileRequest()
         };
     }
 
-    private static QueueItem.PriorityOption MapPriorityOption(string? priority)
+    protected static QueueItem.PriorityOption MapPriorityOption(string? priority)
     {
         return priority switch
         {
@@ -55,7 +55,7 @@ public class AddFileRequest()
         };
     }
 
-    private static QueueItem.PostProcessingOption MapPostProcessingOption(string? postProcessing)
+    protected static QueueItem.PostProcessingOption MapPostProcessingOption(string? postProcessing)
     {
         return postProcessing switch
         {

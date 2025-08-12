@@ -96,28 +96,27 @@ public class NzbFileStream(
     }
 
 
-    private async Task<(int segmentIndex, YencHeader header)> SeekSegment(long byteOffset,
-        CancellationToken cancellationToken)
+    private async Task<InterpolationSearch.Result> SeekSegment(long byteOffset, CancellationToken ct)
     {
-        YencHeader? header = null;
-        var segmentIndex = await InterpolationSearch.Find(0, fileSegmentIds.Length,
-            async guess =>
+        return await InterpolationSearch.Find(
+            byteOffset,
+            new InterpolationSearch.Range(0, fileSegmentIds.Length),
+            new InterpolationSearch.Range(0, fileSize),
+            async (guess) =>
             {
-                header = await client.GetSegmentYencHeaderAsync(fileSegmentIds[guess], cancellationToken);
-                if (header.PartOffset <= byteOffset && byteOffset < header.PartOffset + header.PartSize)
-                    return null;
-                return byteOffset / (header.PartOffset + header.PartSize / 2.0d);
-            }
+                var header = await client.GetSegmentYencHeaderAsync(fileSegmentIds[guess], ct);
+                return new InterpolationSearch.Range(header.PartOffset, header.PartOffset + header.PartSize);
+            },
+            ct
         );
-        return (segmentIndex, header!);
     }
 
     private async Task<CombinedStream> GetFileStream(long rangeStart, CancellationToken cancellationToken)
     {
         if (rangeStart == 0) return GetCombinedStream(0, cancellationToken);
-        var (firstSegmentIndex, header) = await SeekSegment(rangeStart, cancellationToken);
-        var stream = GetCombinedStream(firstSegmentIndex, cancellationToken);
-        await stream.DiscardBytesAsync(rangeStart - header.PartOffset);
+        var foundSegment = await SeekSegment(rangeStart, cancellationToken);
+        var stream = GetCombinedStream(foundSegment.FoundIndex, cancellationToken);
+        await stream.DiscardBytesAsync(rangeStart - foundSegment.FoundByteRange.StartInclusive);
         return stream;
     }
 

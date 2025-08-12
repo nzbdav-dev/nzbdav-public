@@ -96,6 +96,11 @@ export default function Index({ loaderData, actionData }: Route.ComponentProps) 
 
 export async function action({ request }: Route.ActionArgs) {
     try {
+        // if we don't need to go through onboarding, redirect to login page
+        const isOnboarding = await backendClient.isOnboarding();
+        if (!isOnboarding) return redirect("/login");
+
+        // finish onboarding
         const formData = await request.formData();
         const username = formData.get("username")?.toString();
         const password = formData.get("password")?.toString();

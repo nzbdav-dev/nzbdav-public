@@ -1,9 +1,12 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore.Storage.Json;
+using Microsoft.Extensions.Caching.Memory;
 using NzbWebDAV.Clients.Connections;
 using NzbWebDAV.Config;
 using NzbWebDAV.Exceptions;
 using NzbWebDAV.Extensions;
 using NzbWebDAV.Streams;
+using NzbWebDAV.Websocket;
 using Usenet.Nntp.Responses;
 using Usenet.Nzb;
 using Usenet.Yenc;
@@ -13,9 +16,13 @@ namespace NzbWebDAV.Clients;
 public class UsenetStreamingClient
 {
     private readonly INntpClient _client;
+    private readonly WebsocketManager _websocketManager;
 
-    public UsenetStreamingClient(ConfigManager configManager)
+    public UsenetStreamingClient(ConfigManager configManager, WebsocketManager websocketManager)
     {
+        // initialize private members
+        _websocketManager = websocketManager;
+
         // get connection settings from config-manager
         var host = configManager.GetConfigValue("usenet.host") ?? string.Empty;
         var port = int.Parse(configManager.GetConfigValue("usenet.port") ?? "119");
@@ -26,7 +33,7 @@ public class UsenetStreamingClient
 
         // initialize the nntp-client
         var createNewConnection = (CancellationToken ct) => CreateNewConnection(host, port, useSsl, user, pass, ct);
-        ConnectionPool<INntpClient> connectionPool = new(connections, createNewConnection);
+        var connectionPool = CreateNewConnectionPool(connections, createNewConnection);
         var multiConnectionClient = new MultiConnectionNntpClient(connectionPool);
         var cache = new MemoryCache(new MemoryCacheOptions() { SizeLimit = 8192 });
         _client = new CachingNntpClient(multiConnectionClient, cache);
@@ -49,8 +56,9 @@ public class UsenetStreamingClient
             var newUseSsl = bool.Parse(configEventArgs.NewConfig.GetValueOrDefault("usenet.use-ssl", "false"));
             var newUser = configEventArgs.NewConfig["usenet.user"];
             var newPass = configEventArgs.NewConfig["usenet.pass"];
-            multiConnectionClient.UpdateConnectionPool(new(connectionCount, cancellationToken =>
-                CreateNewConnection(newHost, newPort, newUseSsl, newUser, newPass, cancellationToken)));
+            var newConnectionPool = CreateNewConnectionPool(connectionCount, cancellationToken =>
+                CreateNewConnection(newHost, newPort, newUseSsl, newUser, newPass, cancellationToken));
+            multiConnectionClient.UpdateConnectionPool(newConnectionPool);
         };
     }
 
@@ -98,6 +106,25 @@ public class UsenetStreamingClient
     public Task<long> GetFileSizeAsync(NzbFile file, CancellationToken cancellationToken)
     {
         return _client.GetFileSizeAsync(file, cancellationToken);
+    }
+
+    private ConnectionPool<INntpClient> CreateNewConnectionPool
+    (
+        int maxConnections,
+        Func<CancellationToken, ValueTask<INntpClient>> connectionFactory
+    )
+    {
+        var connectionPool = new ConnectionPool<INntpClient>(maxConnections, connectionFactory);
+        connectionPool.OnConnectionPoolChanged += OnConnectionPoolChanged;
+        var args = new ConnectionPool<INntpClient>.ConnectionPoolChangedEventArgs(0, 0, maxConnections);
+        OnConnectionPoolChanged(connectionPool, args);
+        return connectionPool;
+    }
+
+    private void OnConnectionPoolChanged(object? _, ConnectionPool<INntpClient>.ConnectionPoolChangedEventArgs args)
+    {
+        var message = $"{args.Live}|{args.Max}|{args.Idle}";
+        _websocketManager.SendMessage(WebsocketTopic.UsenetConnections, message);
     }
 
     public static async ValueTask<INntpClient> CreateNewConnection

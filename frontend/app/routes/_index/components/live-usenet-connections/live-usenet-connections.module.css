@@ -1,0 +1,37 @@
+.container {
+    width: 100%;
+    margin-top: 25px;
+}
+
+.title {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.max {
+    background-color: #93a1a1;
+    position: relative;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.live {
+    background-color: #eee8d5;
+    position: absolute;
+    height: 100%;
+    width: 0%;
+}
+
+.active {
+    background-color: #268bd2;
+    position: absolute;
+    height: 100%;
+    width: 0%;
+}
+
+.caption {
+    text-align: right;
+    margin-right: 5px;
+    font-size: 12px;
+}

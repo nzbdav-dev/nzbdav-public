@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
-using NzbWebDAV.Services;
+using NzbWebDAV.Queue;
 
 namespace NzbWebDAV.Api.SabControllers.RemoveFromQueue;
 

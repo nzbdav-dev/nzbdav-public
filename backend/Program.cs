@@ -12,10 +12,11 @@ using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Extensions;
 using NzbWebDAV.Middlewares;
-using NzbWebDAV.Services;
+using NzbWebDAV.Queue;
 using NzbWebDAV.Utils;
 using NzbWebDAV.WebDav;
 using NzbWebDAV.WebDav.Base;
+using NzbWebDAV.Websocket;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -47,12 +48,17 @@ class Program
         var configManager = new ConfigManager();
         await configManager.LoadConfig();
 
+        // initialize websocket-manager
+        var websocketManager = new WebsocketManager();
+
         // initialize webapp
         var builder = WebApplication.CreateBuilder(args);
         builder.Host.UseSerilog();
         builder.Services.AddControllers();
+        builder.Services.AddHealthChecks();
         builder.Services
             .AddSingleton(configManager)
+            .AddSingleton(websocketManager)
             .AddSingleton<UsenetStreamingClient>()
             .AddSingleton<QueueManager>()
             .AddScoped<DavDatabaseContext>()
@@ -86,9 +92,12 @@ class Program
         // run
         var app = builder.Build();
         app.UseSerilogRequestLogging();
-        app.UseMiddleware<RequestCancelledMiddleware>();
-        app.UseAuthentication();
+        app.UseMiddleware<ExceptionMiddleware>();
+        app.UseWebSockets();
+        app.MapHealthChecks("/health");
+        app.Map("/ws", websocketManager.HandleRoute);
         app.MapControllers();
+        app.UseAuthentication();
         app.UseNWebDav();
         await app.RunAsync();
     }

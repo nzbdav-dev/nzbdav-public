@@ -4,7 +4,7 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using Serilog;
 
-namespace NzbWebDAV.Services;
+namespace NzbWebDAV.Queue;
 
 public class QueueManager : IDisposable
 {

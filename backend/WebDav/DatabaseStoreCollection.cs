@@ -5,7 +5,7 @@ using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.Extensions;
-using NzbWebDAV.Services;
+using NzbWebDAV.Queue;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
 

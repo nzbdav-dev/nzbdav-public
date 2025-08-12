@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { RequiredTopNavProps } from "../layout/layout";
+import type { RequiredTopNavProps } from "../page-layout/page-layout";
 import { useNavigate } from "react-router";
 import styles from "./top-navigation.module.css";
 import { HamburgerMenu } from "../hamburger-menu/hamburger-menu";

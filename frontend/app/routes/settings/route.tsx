@@ -1,12 +1,7 @@
 import type { Route } from "./+types/route";
-import { Layout } from "../_index/components/layout/layout";
-import { TopNavigation } from "../_index/components/top-navigation/top-navigation";
-import { LeftNavigation } from "../_index/components/left-navigation/left-navigation";
 import styles from "./route.module.css"
 import { Tabs, Tab, Button } from "react-bootstrap"
 import { backendClient } from "~/clients/backend-client.server";
-import { redirect } from "react-router";
-import { sessionStorage } from "~/auth/authentication.server";
 import { isUsenetSettingsUpdated, UsenetSettings } from "./usenet/usenet";
 import React from "react";
 import { isSabnzbdSettingsUpdated, isSabnzbdSettingsValid, SabnzbdSettings } from "./sabnzbd/sabnzbd";
@@ -29,11 +24,6 @@ const defaultConfig = {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-    // ensure user is logged in
-    let session = await sessionStorage.getSession(request.headers.get("cookie"));
-    let user = session.get("user");
-    if (!user) return redirect("/login");
-
     // fetch the config items
     var configItems = await backendClient.getConfig(Object.keys(defaultConfig));
 
@@ -47,11 +37,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Settings(props: Route.ComponentProps) {
     return (
-        <Layout
-            topNavComponent={TopNavigation}
-            bodyChild={<Body config={props.loaderData.config} />}
-            leftNavChild={<LeftNavigation />}
-        />
+        <Body config={props.loaderData.config} />
     );
 }
 
@@ -123,7 +109,7 @@ function Body(props: BodyProps) {
                 className={styles.tabs}
             >
                 <Tab eventKey="usenet" title={usenetTitle}>
-                    <UsenetSettings config={newConfig} setNewConfig={setNewConfig} onReadyToSave={onUsenetSettingsReadyToSave}/>
+                    <UsenetSettings config={newConfig} setNewConfig={setNewConfig} onReadyToSave={onUsenetSettingsReadyToSave} />
                 </Tab>
                 <Tab eventKey="sabnzbd" title={sabnzbdTitle}>
                     <SabnzbdSettings config={newConfig} setNewConfig={setNewConfig} />

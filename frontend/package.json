@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "cross-env NODE_ENV=development PORT=5173 node server.js",
-    "start": "node server.js",
+    "build:server": "tsc -p tsconfig.node.json --outDir dist-node",
+    "dev": "cross-env NODE_ENV=development PORT=5173 tsx server.js",
+    "start": "node dist-node/server.js",
     "typecheck": "react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -25,7 +26,8 @@
     "react-dropzone": "^14.3.8",
     "react-router": "^7.5.3",
     "remix-auth": "^4.2.0",
-    "remix-auth-form": "^3.0.0"
+    "remix-auth-form": "^3.0.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@react-router/dev": "^7.5.3",
@@ -38,11 +40,18 @@
     "@types/node": "^20",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@types/ws": "^8.18.1",
     "cross-env": "^7.0.3",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.20.3",
     "typed-css-modules": "^0.9.1",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4"
+  },
+  "overrides": {
+    "http-proxy-middleware": {
+      "http-proxy": "npm:http-proxy-node16@^1.0.6"
+    }
   }
 }

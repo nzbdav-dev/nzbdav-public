@@ -1,9 +1,6 @@
 import { redirect } from "react-router";
 import type { Route } from "./+types/route";
 import { sessionStorage } from "~/auth/authentication.server";
-import { Layout } from "../_index/components/layout/layout";
-import { TopNavigation } from "../_index/components/top-navigation/top-navigation";
-import { LeftNavigation } from "../_index/components/left-navigation/left-navigation";
 import styles from "./route.module.css"
 import { Alert } from 'react-bootstrap';
 import { backendClient, type HistoryResponse, type QueueResponse } from "~/clients/backend-client.server";
@@ -17,10 +14,6 @@ type BodyProps = {
 };
 
 export async function loader({ request }: Route.LoaderArgs) {
-    let session = await sessionStorage.getSession(request.headers.get("cookie"));
-    let user = session.get("user");
-    if (!user) return redirect("/login");
-
     var queuePromise = backendClient.getQueue();
     var historyPromise = backendClient.getHistory();
     var queue = await queuePromise;
@@ -33,11 +26,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function Queue(props: Route.ComponentProps) {
     return (
-        <Layout
-            topNavComponent={TopNavigation}
-            bodyChild={<Body loaderData={props.loaderData} actionData={props.actionData} />}
-            leftNavChild={<LeftNavigation />}
-        />
+        <Body loaderData={props.loaderData} actionData={props.actionData} />
     );
 }
 
@@ -75,6 +64,7 @@ function Body({ loaderData, actionData }: BodyProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+    // ensure user is logged in
     let session = await sessionStorage.getSession(request.headers.get("cookie"));
     let user = session.get("user");
     if (!user) return redirect("/login");

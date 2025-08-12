@@ -2,7 +2,8 @@ name: Build and Push Docker image to GHCR
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - '**'
   workflow_dispatch:
 
 jobs:
@@ -30,10 +31,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set tag name
+        id: set_tag
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "TAG=pre-alpha" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Docker image (amd64 + arm64)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}:pre-alpha
+          tags: ghcr.io/${{ github.repository }}:${{ steps.set_tag.outputs.TAG }}

@@ -23,7 +23,7 @@ public class GetWebdavItemRequest
         // skip auth check for now
         var downloadKey = context.Request.Query["downloadKey"];
         if (!VerifyDownloadKey(downloadKey, Item))
-            throw new BadHttpRequestException("Invalid download key");
+            throw new UnauthorizedAccessException("Invalid download key");
 
 
         // parse range header

@@ -12,6 +12,7 @@ declare const styles: {
   readonly "stream-icon": string;
   readonly "title": string;
   readonly "unstyled": string;
+  readonly "selected": string;
 };
 export = styles;
 

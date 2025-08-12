@@ -74,14 +74,15 @@ pass = // your rclone-obscured password https://rclone.org/commands/rclone_obscu
 
 
 Below are the RClone settings I use.  
-This setup disables Rclone's caching and streams directly, since the  end-client (Plex/VLC/Chrome/etc) will already buffer-ahead anyway
 ```
---vfs-cache-mode=off
+--vfs-cache-mode=full
 --buffer-size=1024
 --dir-cache-time=1s
 --links
 --use-cookies
 --allow-other
+--uid=1000
+--gid=1000
 ```
 
 * The `--links` setting in RClone is important. It allows *.rclonelink files within the webdav to be translated to symlinks when mounted onto your filesystem.
@@ -109,7 +110,7 @@ Once you have the webdav mounted onto your filesystem (e.g. accessible at `/mnt/
 * RClone will make the nzb contents available to your filesystem by streaming, without using any storage space on your server.
 * NZB-Dav will tell Radarr that the "download" has completed within the `/mnt/nzbdav/completed-symlinks` folder.
 * Radarr will grab the symlinks from `/mnt/nzbdav/completed-symlinks` and will move them to wherever you have your media library.
-* The symlinks always point to the `/mnt/nzbdav/completed` folder which contain the streamable content.
+* The symlinks always point to the `/mnt/nzbdav/content` folder which contain the streamable content.
 * Plex accesses one of the symlinks from your media library, it will automatically fetch and stream it from the mounted webdav.
 
 

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
-using NzbWebDAV.Services;
+using NzbWebDAV.Queue;
 using Usenet.Nzb;
 
 namespace NzbWebDAV.Api.SabControllers.AddFile;
