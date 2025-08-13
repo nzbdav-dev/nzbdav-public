@@ -12,10 +12,17 @@ export function LiveUsenetConnections() {
     const livePercent = 100 * (live / max);
 
     useEffect(() => {
-        const ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
-        ws.onmessage = (event) => setConnections(event.data);
-        ws.onopen = () => ws.send(usenetConnectionsTopic);
-        return () => ws.close();
+        let ws: WebSocket;
+        let disposed = false;
+        function connect() {
+            ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
+            ws.onmessage = (event) => setConnections(event.data);
+            ws.onopen = () => ws.send(usenetConnectionsTopic);
+            ws.onclose = () => { !disposed && setTimeout(() => connect(), 1000); setConnections(null) };
+            ws.onerror = () => { ws.close() };
+            return () => { disposed = true; ws.close(); }
+        }
+        return connect();
     }, [setConnections]);
 
     return (
@@ -23,7 +30,8 @@ export function LiveUsenetConnections() {
             <div className={styles.title}>
                 Usenet Connections
             </div>
-            <div className={styles.max}>
+            <div className={styles.bar}>
+                <div className={styles.max} />
                 <div className={styles.live} style={{ width: `${livePercent}%` }} />
                 <div className={styles.active} style={{ width: `${activePercent}%` }} />
             </div>
