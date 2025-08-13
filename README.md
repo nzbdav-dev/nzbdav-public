@@ -11,6 +11,8 @@ Check the video below for a demo:
 
 https://github.com/user-attachments/assets/d9f8caea-bb65-422e-831d-61d626d5b453
 
+> **Attribution**: The video above contains clips of [Sintel (2010)](https://studio.blender.org/projects/sintel/), by Blender Studios, used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+
 
 # Key Features
 
