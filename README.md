@@ -145,7 +145,7 @@ You can set any options here in the `args="..."` section. The command above sets
 Move or create `rclone.conf` in `/var/lib/docker-plugins/rclone/config/`. Contents should follow the [example](https://github.com/nzbdav-dev/nzbdav?tab=readme-ov-file#rclone).
 
 In your compose.yaml... **NOTE: Ubuntu container is not required, and is only included for testing the rclone volume.**
-```
+```yml
 services:
   nzbdav:
     image: ghcr.io/nzbdav-dev/nzbdav
@@ -192,6 +192,37 @@ To verify proper rclone volume creation:
 $ docker exec -it <ubuntu container name> bash
 $ ls -la /mnt/nzbdav
 ```
+
+## Accessing the rclone volume from a separate stack.
+Note: Your rclone volume **must**. To do so, see the bottom 11 lines in the example compose file above.
+
+The example below uses ubuntu again, but the concept is the same for a different container such as sonarr.
+
+
+Find the stack name that creates the rclone volume:
+```
+$ docker-compose ls
+```
+
+Combine in the new separate compose file:
+```yml
+services:
+  ubuntu:
+    image: ubuntu
+    container_name: ubuntu
+    command: sleep infinity
+    volumes:
+      - nzbdav:/mnt/nzbdav # -- IMPORTANT --
+    environment:
+      - PUID=1000
+      - PGID=1000
+
+volumes:
+  nzbdav:
+    name: <STACK NAME>_nzbdav # See above for finding the stack name. # -- IMPORTANT --
+    external: true # -- IMPORTANT --
+```
+
 
 # More screenshots
 <img width="300" alt="onboarding" src="https://github.com/user-attachments/assets/4ca1bfed-3b98-4ff2-8108-59ed07a25591" />
