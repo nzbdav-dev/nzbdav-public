@@ -121,30 +121,51 @@ Fully containerized setup for docker compose.
 
 See rclone [docs](https://rclone.org/docker/) for more info.
 
+Verify FUSER driver is installed:
+```
+$ fusermount3 --version
+```
+
+Install FUSER driver if needed:
+- `sudo pacman -S fuse3` OR
+- `sudo dnf install fuse3` OR
+- `sudo apt install fuse3` OR
+- `sudo apk add fuse3`
+- etc...
+
+
 Install the rclone volume plugin:
 ```
-sudo dnf install fuse3 # Verify FUSE driver is installed on host. Change command per host OS.
-sudo mkdir -p /var/lib/docker-plugins/rclone/config
-sudo mkdir -p /var/lib/docker-plugins/rclone/cache
-docker plugin install rclone/docker-volume-rclone:amd64 args="-v --links --buffer-size=1024" --alias rclone --grant-all-permissions
+$ sudo mkdir -p /var/lib/docker-plugins/rclone/config
+$ sudo mkdir -p /var/lib/docker-plugins/rclone/cache
+$ docker plugin install rclone/docker-volume-rclone:amd64 args="-v --links --buffer-size=1024" --alias rclone --grant-all-permissions
 ```
 You can set any options here in the `args="..."` section. The command above sets bare minimum, and must be accompanied with more options in the example compose file.
 
 Move or create `rclone.conf` in `/var/lib/docker-plugins/rclone/config/`. Contents should follow the [example](https://github.com/nzbdav-dev/nzbdav?tab=readme-ov-file#rclone).
 
-In your compose.yaml...
+In your compose.yaml... **NOTE: Ubuntu container is not required, and is only included for testing the rclone volume.**
 ```
 services:
   nzbdav:
-    image: ghcr.io/nzbdav-dev/nzbdav:pre-alpha
+    image: ghcr.io/nzbdav-dev/nzbdav
     environment:
       - PUID=1000
-      - PGID=2343
+      - PGID=1000
     ports:
-      - 23729:3000
+      - 3000:3000
     volumes:
       - /opt/stacks/nzbdav:/config
     restart: unless-stopped
+
+  ubuntu:
+    image: ubuntu
+    command: sleep infinity
+    volumes:
+      - nzbdav:/mnt/nzbdav
+    environment:
+      - PUID=1000
+      - PGID=1000
 
   radarr:
     volumes:
@@ -162,8 +183,14 @@ volumes:
       dir_cache_time: 1s
       allow_non_empty: 'true'
       uid: 1000
-      gid: 2343
+      gid: 1000
 
+```
+
+To verify proper rclone volume creation:
+```
+$ docker exec -it <ubuntu container name> bash
+$ ls -la /mnt/nzbdav
 ```
 
 # More screenshots
