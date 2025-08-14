@@ -65,7 +65,10 @@ public class RarAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) :
 
     private DavItem EnsurePath(string pathWithinArchive)
     {
-        var pathSegments = pathWithinArchive.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var pathSegments = pathWithinArchive
+            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Prepend("extracted")
+            .ToArray();
         var parentDirectory = mountDirectory;
         var pathKey = "";
         for (var i = 0; i < pathSegments.Length - 1; i++)
