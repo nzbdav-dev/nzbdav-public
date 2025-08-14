@@ -115,6 +115,84 @@ Once you have the webdav mounted onto your filesystem (e.g. accessible at `/mnt/
 * The symlinks always point to the `/mnt/nzbdav/content` folder which contain the streamable content.
 * Plex accesses one of the symlinks from your media library, it will automatically fetch and stream it from the mounted webdav.
 
+
+# Example Docker Compose Setup
+Fully containerized setup for docker compose. 
+
+See rclone [docs](https://rclone.org/docker/) for more info.
+
+Verify FUSER driver is installed:
+```
+$ fusermount3 --version
+```
+
+Install FUSER driver if needed:
+- `sudo pacman -S fuse3` OR
+- `sudo dnf install fuse3` OR
+- `sudo apt install fuse3` OR
+- `sudo apk add fuse3`
+- etc...
+
+
+Install the rclone volume plugin:
+```
+$ sudo mkdir -p /var/lib/docker-plugins/rclone/config
+$ sudo mkdir -p /var/lib/docker-plugins/rclone/cache
+$ docker plugin install rclone/docker-volume-rclone:amd64 args="-v --links --buffer-size=1024" --alias rclone --grant-all-permissions
+```
+You can set any options here in the `args="..."` section. The command above sets bare minimum, and must be accompanied with more options in the example compose file.
+
+Move or create `rclone.conf` in `/var/lib/docker-plugins/rclone/config/`. Contents should follow the [example](https://github.com/nzbdav-dev/nzbdav?tab=readme-ov-file#rclone).
+
+In your compose.yaml... **NOTE: Ubuntu container is not required, and is only included for testing the rclone volume.**
+```
+services:
+  nzbdav:
+    image: ghcr.io/nzbdav-dev/nzbdav
+    environment:
+      - PUID=1000
+      - PGID=1000
+    ports:
+      - 3000:3000
+    volumes:
+      - /opt/stacks/nzbdav:/config
+    restart: unless-stopped
+
+  ubuntu:
+    image: ubuntu
+    command: sleep infinity
+    volumes:
+      - nzbdav:/mnt/nzbdav
+    environment:
+      - PUID=1000
+      - PGID=1000
+
+  radarr:
+    volumes:
+      - nzbdav:/mnt/nzbdav # Change target path based on SABnzbd rclone mount directory setting.
+
+# the rest of your config ...
+
+volumes:
+  nzbdav:
+    driver: rclone
+    driver_opts:
+      remote: 'nzb-dav:'
+      allow_other: 'true'
+      vfs_cache_mode: off
+      dir_cache_time: 1s
+      allow_non_empty: 'true'
+      uid: 1000
+      gid: 1000
+
+```
+
+To verify proper rclone volume creation:
+```
+$ docker exec -it <ubuntu container name> bash
+$ ls -la /mnt/nzbdav
+```
+
 # More screenshots
 <img width="300" alt="onboarding" src="https://github.com/user-attachments/assets/4ca1bfed-3b98-4ff2-8108-59ed07a25591" />
 <img width="300" alt="queue and history" src="https://github.com/user-attachments/assets/6ae64b41-2ec4-4c40-9c40-de23e42a4178" />
