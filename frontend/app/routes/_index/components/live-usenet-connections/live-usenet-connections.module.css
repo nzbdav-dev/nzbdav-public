@@ -8,30 +8,35 @@
     margin-bottom: 5px;
 }
 
+.bar {
+    position: relative;
+    height: 1px;
+    margin-bottom: 5px;
+}
+
 .max {
     background-color: #93a1a1;
-    position: relative;
-    border-radius: 10px;
-    height: 10px;
-    overflow: hidden;
+    opacity: 0.25;
+    position: absolute;
+    height: 100%;
+    width: 100%;
 }
 
 .live {
-    background-color: #eee8d5;
+    background-color: green;
     position: absolute;
     height: 100%;
     width: 0%;
 }
 
 .active {
-    background-color: #268bd2;
+    background-color: blue;
     position: absolute;
     height: 100%;
     width: 0%;
 }
 
 .caption {
-    text-align: right;
     margin-right: 5px;
     font-size: 12px;
 }
