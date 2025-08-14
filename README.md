@@ -214,8 +214,8 @@ services:
     volumes:
       - nzbdav:/mnt/nzbdav # -- IMPORTANT --
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=1000 # Must match UID value from volume in the stack creating the volume (driver_opts).
+      - PGID=1000 # Must match GID value from volume in the stack creating the volume (driver_opts).
 
 volumes:
   nzbdav:
