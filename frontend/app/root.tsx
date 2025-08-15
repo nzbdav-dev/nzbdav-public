@@ -28,7 +28,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   let session = await sessionStorage.getSession(request.headers.get("cookie"));
   let user = session.get("user");
   if (!user) return redirect("/login");
-  return { useLayout: true };
+  return {
+    useLayout: true,
+    version: process.env.NZBDAV_VERSION
+  };
 }
 
 
@@ -52,7 +55,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App({ loaderData }: Route.ComponentProps) {
-  const { useLayout } = loaderData;
+  const { useLayout, version } = loaderData;
   const location = useLocation();
   const navigation = useNavigation();
   const isNavigating = Boolean(navigation.location);
@@ -68,7 +71,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
       <PageLayout
         topNavComponent={TopNavigation}
         bodyChild={showLoading ? <Loading /> : <Outlet />}
-        leftNavChild={<LeftNavigation />} />
+        leftNavChild={<LeftNavigation version={version} />} />
     );
   }
 

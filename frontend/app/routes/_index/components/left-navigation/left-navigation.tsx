@@ -4,7 +4,11 @@ import { className } from "~/utils/styling";
 import type React from "react";
 import { LiveUsenetConnections } from "../live-usenet-connections/live-usenet-connections";
 
-export function LeftNavigation() {
+export type LeftNavigationProps = {
+    version?: string
+}
+
+export function LeftNavigation({ version }: LeftNavigationProps) {
     return (
         <div className={styles.container}>
             <Item target="/queue">
@@ -32,7 +36,7 @@ export function LeftNavigation() {
                     changelog
                 </div>
                 <div className={styles["footer-item"]}>
-                    version: 0.2.0
+                    version: {version || 'unknown'}
                 </div>
                 <hr />
                 <Form method="post" action="/logout">

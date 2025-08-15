@@ -31,13 +31,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set tag name
-        id: set_tag
+      - name: Set tag name and branch argument
+        id: set_vars
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             echo "TAG=pre-alpha" >> $GITHUB_OUTPUT
+            echo "BRANCH_ARG=" >> $GITHUB_OUTPUT
           else
             echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "BRANCH_ARG=${{ github.ref_name }}-" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Docker image (amd64 + arm64)
@@ -46,4 +48,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}:${{ steps.set_tag.outputs.TAG }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.set_vars.outputs.TAG }}
+          build-args: |
+            NZBDAV_BRANCH=${{ steps.set_vars.outputs.BRANCH_ARG }}
+            NZBDAV_PATCH=${{ github.run_number }}

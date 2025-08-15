@@ -45,6 +45,9 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
+ARG NZBDAV_BRANCH=dev-
+ARG NZBDAV_PATCH=x
+ENV NZBDAV_VERSION=${NZBDAV_BRANCH}0.2.${NZBDAV_PATCH}
 ENV NODE_ENV=production
 ENV LOG_LEVEL=warning
 
