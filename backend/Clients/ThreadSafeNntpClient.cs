@@ -76,6 +76,7 @@ public class ThreadSafeNntpClient : INntpClient
 
     public async Task<long> GetFileSizeAsync(NzbFile file, CancellationToken cancellationToken)
     {
+        if (file.Segments.Count == 0) return 0;
         var header = await GetSegmentYencHeaderAsync(file.Segments[0].MessageId.Value, cancellationToken);
         return header.FileSize;
     }

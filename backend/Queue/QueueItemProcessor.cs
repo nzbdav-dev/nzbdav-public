@@ -85,15 +85,16 @@ public class QueueItemProcessor(
         var documentBytes = Encoding.UTF8.GetBytes(queueItem.NzbContents);
         using var stream = new MemoryStream(documentBytes);
         var nzb = await NzbDocument.LoadAsync(stream);
+        var nzbFiles = nzb.Files.Where(x => x.Segments.Count > 0).ToList();
 
         // parse filenames for each nzb file
-        var filenamesTaskDictionary = nzb.Files.ToDictionary(x => x, x => x.GetFileName(usenetClient));
+        var filenamesTaskDictionary = nzbFiles.ToDictionary(x => x, x => x.GetFileName(usenetClient));
         var filenamesDictionary = new Dictionary<NzbFile, string>();
         foreach (var filenameTask in filenamesTaskDictionary)
             filenamesDictionary[filenameTask.Key] = await filenameTask.Value;
 
         // start file processing tasks
-        var fileProcessingTasks = nzb.Files
+        var fileProcessingTasks = nzbFiles
             .DistinctBy(x => filenamesDictionary[x])
             .Select(x => GetFileProcessor(x, filenamesDictionary[x]))
             .Where(x => x is not null)
