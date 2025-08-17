@@ -15,6 +15,7 @@ public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, Config
     public override string Name => davFile.Name + ".rclonelink";
     public override string UniqueKey => davFile.Id + ".rclonelink";
     public override long FileSize => ContentBytes.Length;
+    public override DateTime CreatedAt => davFile.CreatedAt;
 
     private string TargetPath =>
         Path.Combine(configManager.GetRcloneMountDir(), DavItem.ContentFolder.Name, parentPath, davFile.Name);

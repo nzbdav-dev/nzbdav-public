@@ -11,6 +11,7 @@ public abstract class BaseStoreItem : IStoreItem
     public abstract string Name { get; }
     public abstract string UniqueKey { get; }
     public abstract long FileSize { get; }
+    public abstract DateTime CreatedAt { get; }
     public abstract Task<Stream> GetReadableStreamAsync(CancellationToken cancellationToken);
     protected abstract Task<DavStatusCode> UploadFromStreamAsync(UploadFromStreamRequest request);
     protected abstract Task<StoreItemResult> CopyAsync(CopyRequest request);

@@ -21,6 +21,7 @@ public class DatabaseStoreCollection(
 {
     public override string Name => davDirectory.Name;
     public override string UniqueKey => davDirectory.Id.ToString();
+    public override DateTime CreatedAt => davDirectory.CreatedAt;
 
     protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
     {

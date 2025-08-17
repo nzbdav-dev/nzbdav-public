@@ -108,15 +108,6 @@ public class GetAndHeadHandlerPatch : IRequestHandler
                         // Determine the total length
                         var length = stream.Length;
 
-                        // Check if an 'If-Range' was specified
-                        if (range?.If != null && range?.If != default(DateTime) && propertyManager != null)
-                        {
-                            var lastModifiedText = (string?)await propertyManager.GetPropertyAsync(entry, DavGetLastModified<IStoreItem>.PropertyName, true, httpContext.RequestAborted).ConfigureAwait(false);
-                            var lastModified = DateTime.Parse(lastModifiedText, CultureInfo.InvariantCulture);
-                            if (lastModified != range.If)
-                                range = null;
-                        }
-
                         // Check if a range was specified
                         if (range != null)
                         {

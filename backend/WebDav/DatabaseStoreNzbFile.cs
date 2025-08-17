@@ -20,6 +20,7 @@ public class DatabaseStoreNzbFile(
     public override string Name => davNzbFile.Name;
     public override string UniqueKey => davNzbFile.Id.ToString();
     public override long FileSize => davNzbFile.FileSize!.Value;
+    public override DateTime CreatedAt => davNzbFile.CreatedAt;
 
     public override async Task<Stream> GetReadableStreamAsync(CancellationToken cancellationToken)
     {

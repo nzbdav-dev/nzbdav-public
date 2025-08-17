@@ -19,6 +19,7 @@ public class DatabaseStoreQueueItem(
     public override string Name => queueItem.FileName;
     public override string UniqueKey => queueItem.Id.ToString();
     public override long FileSize => queueItem.NzbFileSize;
+    public override DateTime CreatedAt => queueItem.CreatedAt;
 
     public override async Task<Stream> GetReadableStreamAsync(CancellationToken ct)
     {

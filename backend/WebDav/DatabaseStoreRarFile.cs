@@ -22,6 +22,7 @@ public class DatabaseStoreRarFile(
     public override string Name => davRarFile.Name;
     public override string UniqueKey => davRarFile.Id.ToString();
     public override long FileSize => davRarFile.FileSize!.Value;
+    public override DateTime CreatedAt => davRarFile.CreatedAt;
 
     public override async Task<Stream> GetReadableStreamAsync(CancellationToken ct)
     {

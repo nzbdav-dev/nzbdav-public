@@ -19,6 +19,7 @@ public class DatabaseStoreSymlinkCollection(
 {
     public override string Name => davDirectory.Name;
     public override string UniqueKey => davDirectory.Id.ToString();
+    public override DateTime CreatedAt => davDirectory.CreatedAt;
 
     private string RelativePath => davDirectory.Id == DavItem.SymlinkFolder.Id ? "" : Path.Join(parentPath, Name);
     private Guid TargetId => davDirectory.Id == DavItem.SymlinkFolder.Id ? DavItem.ContentFolder.Id : davDirectory.Id;
