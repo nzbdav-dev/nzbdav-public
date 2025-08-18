@@ -1,0 +1,26 @@
+.truncate {
+    word-break: break-all;
+    line-clamp: 1;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: initial;
+}
+
+/* mobile */
+@media not (min-width: 900px) {
+    .truncate {
+        line-clamp: 10;
+        -webkit-line-clamp: 10;
+    }
+}
+
+/* desktop */
+@media not (pointer: coarse), (min-width: 900px) {
+    .truncate:active {
+        line-clamp: 10;
+        -webkit-line-clamp: 10;
+    }
+}

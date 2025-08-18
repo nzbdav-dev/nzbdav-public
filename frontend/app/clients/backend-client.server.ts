@@ -67,13 +67,13 @@ class BackendClient {
         return data.authenticated;
     }
 
-    public async getQueue(): Promise<any> {
+    public async getQueue(): Promise<QueueResponse> {
         const url = process.env.BACKEND_URL + "/api?mode=queue";
 
         const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
         const response = await fetch(url, { headers: { "x-api-key": apiKey } });
         if (!response.ok) {
-            throw new Error(`Failed to authenticate: ${(await response.json()).error}`);
+            throw new Error(`Failed to get queue: ${(await response.json()).error}`);
         }
 
         const data = await response.json();
@@ -86,7 +86,7 @@ class BackendClient {
         const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
         const response = await fetch(url, { headers: { "x-api-key": apiKey } });
         if (!response.ok) {
-            throw new Error(`Failed to authenticate: ${(await response.json()).error}`);
+            throw new Error(`Failed to get history: ${(await response.json()).error}`);
         }
 
         const data = await response.json();
@@ -207,6 +207,33 @@ class BackendClient {
         }
         const data = await response.json();
         return data.connected || false;
+    }
+
+    public async removeFromQueue(nzo_id: string): Promise<any> {
+        const url = process.env.BACKEND_URL
+            + '/api?mode=queue&name=delete'
+            + `&value=${encodeURIComponent(nzo_id)}`;
+        const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
+        const response = await fetch(url, { headers: { "x-api-key": apiKey } });
+        if (!response.ok) {
+            throw new Error(`Failed to remove from queue: ${(await response.json()).error}`);
+        }
+
+        return await response.json();
+    }
+
+    public async removeFromHistory(nzo_id: string, del_completed_files: boolean): Promise<any> {
+        let url = process.env.BACKEND_URL
+            + '/api?mode=history&name=delete'
+            + `&value=${encodeURIComponent(nzo_id)}`
+            + `&del_completed_files=${del_completed_files ? 1 : 0}`;
+        const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
+        const response = await fetch(url, { headers: { "x-api-key": apiKey } });
+        if (!response.ok) {
+            throw new Error(`Failed to remove from history: ${(await response.json()).error}`);
+        }
+
+        return await response.json();
     }
 }
 

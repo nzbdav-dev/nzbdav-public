@@ -1,0 +1,81 @@
+.container {
+    container-type: inline-size;
+}
+
+.page-table thead tr th {
+    background-color: hsl(192, 100%, 11%) !important;
+    text-align: center;
+    width: 100px;
+}
+
+.page-table thead tr th:first-child {
+    border-radius: 10px 0 0 0;
+    padding-left: 15px !important;
+    text-align: left;
+    width: 50%;
+}
+
+.page-table thead tr th:last-child {
+    border-radius: 0 10px 0 0;
+}
+
+.page-table tbody tr td {
+    max-width: 200px;
+    color: hsl(180, 7%, 70%) !important;
+    --bs-table-bg: hsl(192, 90%, 6%);
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+
+.page-table tbody tr td:first-child {
+    text-align: left;
+    padding: 15px 0 !important;
+    padding-left: 15px !important;
+}
+
+.page-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.page-table tbody tr:last-child td:first-child {
+    border-radius: 0 0 0 10px;
+}
+
+.page-table tbody tr:last-child td:last-child {
+    border-radius: 0 0 10px 0;
+}
+
+.deleting {
+    opacity: 20%;
+}
+
+.reappear {
+    display: none;
+}
+
+.reappear *:has(+*) {
+    margin-right: 10px;
+    margin-bottom: 5px;
+}
+
+.reappear div {
+    margin-left: 5px;
+}
+
+/* mobile */
+@media not (min-width: 900px)  {
+    .disappear {
+        display: none;
+    }
+
+    .reappear {
+        display: block;
+        margin-top: 2px;
+    }
+
+    .page-table thead tr th:first-child {
+        width: unset;
+    }
+}

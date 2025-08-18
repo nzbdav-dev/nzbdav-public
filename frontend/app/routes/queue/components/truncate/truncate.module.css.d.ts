@@ -1,5 +1,5 @@
 declare const styles: {
-  readonly "failure-badge": string;
+  readonly "truncate": string;
 };
 export = styles;
 
