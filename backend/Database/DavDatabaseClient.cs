@@ -115,6 +115,11 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     }
 
     // history
+    public async Task<HistoryItem?> GetHistoryItemAsync(string id)
+    {
+        return await Ctx.HistoryItems.FirstOrDefaultAsync(x => x.Id == Guid.Parse(id));
+    }
+
     public async Task RemoveHistoryItemAsync(string id)
     {
         try
