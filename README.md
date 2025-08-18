@@ -88,8 +88,6 @@ Below are the RClone settings I use.
 ```
 
 * The `--links` setting in RClone is important. It allows *.rclonelink files within the webdav to be translated to symlinks when mounted onto your filesystem.
-* The `--vfs-cache-max-size=5G` Can be added to set the max total size of objects in the cache (default off), thus possibly consuming all free space.
-* The `--vfs-cache-max-age=30m` Can be added to set the max time since last access of objects in the cache (default 1h0m0s). 
 
     > NOTE: Be sure to use an updated version of rclone that supports the `--links` argument.
     > * Version `v1.70.3` has been known to support it.
@@ -98,6 +96,9 @@ Below are the RClone settings I use.
 * The `--use-cookies` setting in RClone is also important. Without it, RClone is forced to re-authenticate on every single webdav request, slowing it down considerably.
 * The `--allow-other` setting is not required, but it should help if you find that your containers are not able to see the mount contents due to permission issues.
 
+**Optional**
+* The `--vfs-cache-max-size=5G` Can be added to set the max total size of objects in the cache (default off), thus possibly consuming all free space.
+* The `--vfs-cache-max-age=30m` Can be added to set the max time since last access of objects in the cache (default 1h0m0s). 
 
 
 # Radarr / Sonarr
