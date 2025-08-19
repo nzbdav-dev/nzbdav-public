@@ -80,6 +80,8 @@ Below are the RClone settings I use.
 --vfs-cache-mode=full
 --buffer-size=1024
 --dir-cache-time=1s
+--vfs-cache-max-size=5G
+--vfs-cache-max-age=180m
 --links
 --use-cookies
 --allow-other
@@ -96,6 +98,9 @@ Below are the RClone settings I use.
 * The `--use-cookies` setting in RClone is also important. Without it, RClone is forced to re-authenticate on every single webdav request, slowing it down considerably.
 * The `--allow-other` setting is not required, but it should help if you find that your containers are not able to see the mount contents due to permission issues.
 
+**Optional**
+* The `--vfs-cache-max-size=5G` Can be added to set the max total size of objects in the cache (default off), thus possibly consuming all free space.
+* The `--vfs-cache-max-age=180m` Can be added to set the max time since last access of objects in the cache (default 1h0m0s). 
 
 
 # Radarr / Sonarr
