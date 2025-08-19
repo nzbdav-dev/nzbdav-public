@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Database.Models;
 
 namespace NzbWebDAV.Database;
@@ -137,5 +137,18 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     private class FileSizeResult
     {
         public long TotalSize { get; init; }
+    }
+
+    // completed-symlinks
+    public async Task<List<DavItem>> GetCompletedSymlinkCategoryChildren(string category, CancellationToken ct = default)
+    {
+        var query = from historyItem in Ctx.HistoryItems
+            where historyItem.Category == category
+                  && historyItem.DownloadStatus == HistoryItem.DownloadStatusOption.Completed
+                  && historyItem.DownloadDirId != null
+            join davItem in Ctx.Items on historyItem.DownloadDirId equals davItem.Id
+            where davItem.Type == DavItem.ItemType.Directory
+            select davItem;
+        return await query.Distinct().ToListAsync(ct);
     }
 }
