@@ -227,6 +227,9 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
             e.Property(i => i.FailMessage)
                 .IsRequired(false);
 
+            e.Property(i => i.DownloadDirId)
+                .IsRequired(false);
+
             e.HasIndex(i => new { i.CreatedAt })
                 .IsUnique(false);
 
@@ -234,6 +237,9 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
                 .IsUnique(false);
 
             e.HasIndex(i => new { i.Category, i.CreatedAt })
+                .IsUnique(false);
+
+            e.HasIndex(i => new { i.Category, i.DownloadDirId })
                 .IsUnique(false);
         });
 

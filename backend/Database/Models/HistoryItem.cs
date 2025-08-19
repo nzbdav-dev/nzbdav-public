@@ -11,6 +11,7 @@ public class HistoryItem
     public long TotalSegmentBytes { get; set; }
     public int DownloadTimeSeconds { get; set; }
     public string? FailMessage { get; set; }
+    public Guid? DownloadDirId { get; set; }
 
     public enum DownloadStatusOption
     {
