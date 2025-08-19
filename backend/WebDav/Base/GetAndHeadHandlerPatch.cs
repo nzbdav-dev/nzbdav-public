@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using NWebDav.Server;
 using NWebDav.Server.Handlers;
 using NWebDav.Server.Helpers;

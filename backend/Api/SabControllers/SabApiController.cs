@@ -14,7 +14,6 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Extensions;
 using NzbWebDAV.Queue;
 using NzbWebDAV.Utils;
-using NzbWebDAV.WebDav;
 
 namespace NzbWebDAV.Api.SabControllers;
 
@@ -23,8 +22,7 @@ namespace NzbWebDAV.Api.SabControllers;
 public class SabApiController(
     DavDatabaseClient dbClient,
     ConfigManager configManager,
-    QueueManager queueManager,
-    DatabaseStore databaseStore
+    QueueManager queueManager
 ) : ControllerBase
 {
     [HttpGet]
@@ -83,7 +81,7 @@ public class SabApiController(
                 return new GetQueueController(HttpContext, dbClient, queueManager, configManager);
 
             case "history" when HttpContext.GetQueryParam("name") == "delete":
-                return new RemoveFromHistoryController(HttpContext, dbClient, configManager, databaseStore);
+                return new RemoveFromHistoryController(HttpContext, dbClient, configManager);
             case "history":
                 return new GetHistoryController(HttpContext, dbClient, configManager);
 

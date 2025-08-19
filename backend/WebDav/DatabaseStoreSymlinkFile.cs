@@ -3,7 +3,6 @@ using NWebDav.Server;
 using NWebDav.Server.Stores;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database.Models;
-using NzbWebDAV.Utils;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
 using Serilog;

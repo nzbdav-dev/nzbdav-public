@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using NzbWebDAV.Extensions;
 
 namespace NzbWebDAV.Api.Controllers.ListWebdavDirectory;
 

@@ -1,18 +1,17 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using NWebDav.Server.Stores;
+using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
-using NzbWebDAV.WebDav;
+using NzbWebDAV.Extensions;
 
 namespace NzbWebDAV.Api.SabControllers.RemoveFromHistory;
 
 public class RemoveFromHistoryController(
     HttpContext httpContext,
     DavDatabaseClient dbClient,
-    ConfigManager configManager,
-    DatabaseStore store
+    ConfigManager configManager
 ) : SabApiController.BaseController(httpContext, configManager)
 {
     public async Task<RemoveFromHistoryResponse> RemoveFromHistory(RemoveFromHistoryRequest request)
@@ -22,17 +21,18 @@ public class RemoveFromHistoryController(
         if (historyItem is null) return new RemoveFromHistoryResponse() { Status = true };
         if (request.DeleteCompletedFiles) await DeleteCompletedFiles(historyItem, request.CancellationToken);
         dbClient.Ctx.HistoryItems.Remove(historyItem);
-        await dbClient.Ctx.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await dbClient.Ctx.SaveChangesAsync(request.CancellationToken);
+        await transaction.CommitAsync(request.CancellationToken);
         return new RemoveFromHistoryResponse() { Status = true };
     }
 
-    public async Task DeleteCompletedFiles(HistoryItem historyItem, CancellationToken cancellationToken)
+    public async Task DeleteCompletedFiles(HistoryItem historyItem, CancellationToken ct)
     {
-        var categoryPath = Path.Join(DavItem.ContentFolder.Name, historyItem.Category);
-        var item = await store.GetItemAsync(categoryPath, cancellationToken);
-        if (item is not IStoreCollection dir) return;
-        await dir.DeleteItemAsync(historyItem.JobName, cancellationToken);
+        if (historyItem.DownloadDirId is null) return;
+        var downloadDir = await dbClient.Ctx.Items.FirstOrDefaultAsync(x => x.Id == historyItem.DownloadDirId, ct);
+        if (downloadDir is null) return;
+        if (downloadDir.IsProtected()) return;
+        dbClient.Ctx.Items.Remove(downloadDir);
     }
 
     protected override async Task<IActionResult> Handle()
