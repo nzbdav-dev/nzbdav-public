@@ -1,4 +1,5 @@
-﻿using NWebDav.Server;
+﻿using Microsoft.AspNetCore.Http;
+using NWebDav.Server;
 using NWebDav.Server.Stores;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
@@ -12,6 +13,7 @@ namespace NzbWebDAV.WebDav;
 
 public class DatabaseStoreNzbFile(
     DavItem davNzbFile,
+    HttpContext httpContext,
     DavDatabaseClient dbClient,
     UsenetStreamingClient usenetClient,
     ConfigManager configManager
@@ -24,6 +26,10 @@ public class DatabaseStoreNzbFile(
 
     public override async Task<Stream> GetReadableStreamAsync(CancellationToken cancellationToken)
     {
+        // store the DavItem being accessed in the http context
+        httpContext.Items["DavItem"] = davNzbFile;
+
+        // return the stream
         var id = davNzbFile.Id;
         var file = await dbClient.GetNzbFileAsync(id, cancellationToken);
         if (file is null) throw new FileNotFoundException($"Could not find nzb file with id: {id}");

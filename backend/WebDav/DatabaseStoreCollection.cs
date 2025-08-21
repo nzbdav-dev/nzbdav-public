@@ -1,4 +1,5 @@
-﻿using NWebDav.Server;
+﻿using Microsoft.AspNetCore.Http;
+using NWebDav.Server;
 using NWebDav.Server.Stores;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
@@ -13,6 +14,7 @@ namespace NzbWebDAV.WebDav;
 
 public class DatabaseStoreCollection(
     DavItem davDirectory,
+    HttpContext httpContext,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetStreamingClient usenetClient,
@@ -97,15 +99,15 @@ public class DatabaseStoreCollection(
         return davItem.Type switch
         {
             DavItem.ItemType.Directory when davItem.Id == DavItem.NzbFolder.Id =>
-                new DatabaseStoreWatchFolder(davItem, dbClient, configManager, usenetClient, queueManager),
+                new DatabaseStoreWatchFolder(davItem, httpContext, dbClient, configManager, usenetClient, queueManager),
             DavItem.ItemType.Directory =>
-                new DatabaseStoreCollection(davItem, dbClient, configManager, usenetClient, queueManager),
+                new DatabaseStoreCollection(davItem, httpContext, dbClient, configManager, usenetClient, queueManager),
             DavItem.ItemType.SymlinkRoot =>
                 new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager),
             DavItem.ItemType.NzbFile =>
-                new DatabaseStoreNzbFile(davItem, dbClient, usenetClient, configManager),
+                new DatabaseStoreNzbFile(davItem, httpContext, dbClient, usenetClient, configManager),
             DavItem.ItemType.RarFile =>
-                new DatabaseStoreRarFile(davItem, dbClient, usenetClient, configManager),
+                new DatabaseStoreRarFile(davItem, httpContext, dbClient, usenetClient, configManager),
             _ => throw new ArgumentException("Unrecognized directory child type.")
         };
     }
