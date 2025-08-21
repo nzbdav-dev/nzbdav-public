@@ -7,6 +7,21 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
 {
     public DavDatabaseContext Ctx => ctx;
 
+    // file
+    public Task<DavItem?> GetFileById(string id)
+    {
+        var guid = Guid.Parse(id);
+        return ctx.Items.Where(i => i.Id == guid).FirstOrDefaultAsync();
+    }
+
+    public Task<List<DavItem>> GetFilesByIdPrefix(string prefix)
+    {
+        return ctx.Items
+            .Where(i => EF.Functions.Like(i.Id.ToString(), $"{prefix}%"))
+            .Where(i => i.Type == DavItem.ItemType.NzbFile || i.Type == DavItem.ItemType.RarFile)
+            .ToListAsync();
+    }
+
     // directory
     public Task<List<DavItem>> GetDirectoryChildrenAsync(Guid dirId, CancellationToken ct = default)
     {

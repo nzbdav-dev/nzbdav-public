@@ -19,6 +19,7 @@ public class DavItem
         SymlinkRoot = 2,
         NzbFile = 3,
         RarFile = 4,
+        IdsRoot = 5,
     }
 
     // navigation helpers
@@ -65,5 +66,14 @@ public class DavItem
         Name = "completed-symlinks",
         FileSize = null,
         Type = ItemType.SymlinkRoot,
+    };
+
+    public static readonly DavItem IdsFolder = new()
+    {
+        Id = Guid.Parse("00000000-0000-0000-0000-000000000004"),
+        ParentId = Root.Id,
+        Name = ".ids",
+        FileSize = null,
+        Type = ItemType.IdsRoot,
     };
 }

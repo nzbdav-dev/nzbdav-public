@@ -98,6 +98,8 @@ public class DatabaseStoreCollection(
     {
         return davItem.Type switch
         {
+            DavItem.ItemType.IdsRoot =>
+                new DatabaseStoreIdsCollection(davItem.Name, "", httpContext, dbClient, usenetClient, configManager),
             DavItem.ItemType.Directory when davItem.Id == DavItem.NzbFolder.Id =>
                 new DatabaseStoreWatchFolder(davItem, httpContext, dbClient, configManager, usenetClient, queueManager),
             DavItem.ItemType.Directory =>
