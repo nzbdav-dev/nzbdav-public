@@ -162,6 +162,7 @@ public class QueueItemProcessor(
             ParentId = DavItem.ContentFolder.Id,
             Name = queueItem.Category,
             Type = DavItem.ItemType.Directory,
+            Path = Path.Join(DavItem.ContentFolder.Path, queueItem.Category)
         };
         dbClient.Ctx.Items.Add(categoryFolder);
         return categoryFolder;
@@ -176,6 +177,7 @@ public class QueueItemProcessor(
             ParentId = categoryFolder.Id,
             Name = queueItem.JobName,
             Type = DavItem.ItemType.Directory,
+            Path = Path.Join(categoryFolder.Path, queueItem.JobName)
         };
         dbClient.Ctx.Items.Add(mountFolder);
         return mountFolder;

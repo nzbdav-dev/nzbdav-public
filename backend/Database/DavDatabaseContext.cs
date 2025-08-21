@@ -73,6 +73,9 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
                 .HasConversion<int>()
                 .IsRequired();
 
+            e.Property(i => i.Path)
+                .IsRequired();
+
             e.HasOne(i => i.Parent)
                 .WithMany(p => p.Children)
                 .HasForeignKey(i => i.ParentId)

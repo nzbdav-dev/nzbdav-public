@@ -10,6 +10,7 @@ public class DavItem
     public string Name { get; init; } = null!;
     public long? FileSize { get; set; }
     public ItemType Type { get; init; }
+    public string Path { get; init; } = null!;
 
     // Important: numerical values cannot be
     // changed without a database migration.
@@ -39,6 +40,7 @@ public class DavItem
         Name = "/",
         FileSize = null,
         Type = ItemType.Directory,
+        Path = "/",
     };
 
     public static readonly DavItem NzbFolder = new()
@@ -48,6 +50,7 @@ public class DavItem
         Name = "nzbs",
         FileSize = null,
         Type = ItemType.Directory,
+        Path = "/nzbs",
     };
 
     public static readonly DavItem ContentFolder = new()
@@ -57,6 +60,7 @@ public class DavItem
         Name = "content",
         FileSize = null,
         Type = ItemType.Directory,
+        Path = "/content",
     };
 
     public static readonly DavItem SymlinkFolder = new()
@@ -66,6 +70,7 @@ public class DavItem
         Name = "completed-symlinks",
         FileSize = null,
         Type = ItemType.SymlinkRoot,
+        Path = "/completed-symlinks",
     };
 
     public static readonly DavItem IdsFolder = new()
@@ -75,5 +80,6 @@ public class DavItem
         Name = ".ids",
         FileSize = null,
         Type = ItemType.IdsRoot,
+        Path = "/.ids",
     };
 }
