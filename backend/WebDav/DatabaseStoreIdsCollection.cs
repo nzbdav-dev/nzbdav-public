@@ -22,7 +22,7 @@ public class DatabaseStoreIdsCollection(
     public override string UniqueKey => currentPath;
     public override DateTime CreatedAt => default;
 
-    private const int FanningDepth = 5;
+    public const int FanningDepth = 5;
     private const string Alphabet = "0123456789abcdef";
 
     private readonly string[] _currentPathParts = currentPath.Split(

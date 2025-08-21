@@ -16,11 +16,7 @@ public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, Config
     public override long FileSize => ContentBytes.Length;
     public override DateTime CreatedAt => davFile.CreatedAt;
 
-    private string TargetPath =>
-        Path.Combine(configManager.GetRcloneMountDir(), DavItem.ContentFolder.Name, parentPath, davFile.Name);
-
-    private byte[] ContentBytes =>
-        Encoding.UTF8.GetBytes(TargetPath);
+    private byte[] ContentBytes => Encoding.UTF8.GetBytes(GetTargetPath());
 
     public override Task<Stream> GetReadableStreamAsync(CancellationToken cancellationToken)
     {
@@ -37,5 +33,17 @@ public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, Config
     {
         Log.Error("symlinks files cannot be copied. They simply mirror items in the /content root");
         return Task.FromResult(new StoreItemResult(DavStatusCode.Forbidden));
+    }
+
+    private string GetTargetPath()
+    {
+        var pathParts = davFile.Id.ToString()
+            .Select(x => x.ToString())
+            .Take(DatabaseStoreIdsCollection.FanningDepth)
+            .Prepend(DavItem.IdsFolder.Name)
+            .Prepend(configManager.GetRcloneMountDir())
+            .Append(davFile.Id.ToString())
+            .ToArray();
+        return Path.Join(pathParts);
     }
 }
