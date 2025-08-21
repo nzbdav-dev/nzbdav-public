@@ -31,15 +31,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set tag name and branch argument
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set tags and NZBDAV_VERSION
         id: set_vars
         run: |
+          MAJOR=0
+          MINOR=2
+          PATCH=${{ github.run_number }}
+
+          echo "NZBDAV_VERSION=${MAJOR}.${MINOR}.${PATCH}" >> $GITHUB_OUTPUT
+
+          GHCR_REPO="ghcr.io/${{ github.repository }}"
+          DOCKERHUB_REPO="nzbdav/nzbdav"
+
           if [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "TAG=pre-alpha" >> $GITHUB_OUTPUT
-            echo "BRANCH_ARG=" >> $GITHUB_OUTPUT
+            {
+              echo "TAGS<<EOF"
+              echo "${GHCR_REPO}:pre-alpha"
+              echo "${GHCR_REPO}:${MAJOR}.x"
+              echo "${GHCR_REPO}:${MAJOR}.${MINOR}.x"
+              echo "${GHCR_REPO}:${MAJOR}.${MINOR}.${PATCH}"
+              echo "${DOCKERHUB_REPO}:pre-alpha"
+              echo "${DOCKERHUB_REPO}:${MAJOR}.x"
+              echo "${DOCKERHUB_REPO}:${MAJOR}.${MINOR}.x"
+              echo "${DOCKERHUB_REPO}:${MAJOR}.${MINOR}.${PATCH}"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
           else
-            echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "BRANCH_ARG=${{ github.ref_name }}-" >> $GITHUB_OUTPUT
+            echo "TAGS=${GHCR_REPO}:${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Docker image (amd64 + arm64)
@@ -48,7 +73,6 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}:${{ steps.set_vars.outputs.TAG }}
+          tags: ${{ steps.set_vars.outputs.TAGS }}
           build-args: |
-            NZBDAV_BRANCH=${{ steps.set_vars.outputs.BRANCH_ARG }}
-            NZBDAV_PATCH=${{ github.run_number }}
+            NZBDAV_VERSION=${{ steps.set_vars.outputs.NZBDAV_VERSION }}
