@@ -21,6 +21,7 @@ public class DatabaseStoreRarFile(
     ConfigManager configManager
 ) : BaseStoreItem
 {
+    public DavItem DavItem => davRarFile;
     public override string Name => davRarFile.Name;
     public override string UniqueKey => davRarFile.Id.ToString();
     public override long FileSize => davRarFile.FileSize!.Value;

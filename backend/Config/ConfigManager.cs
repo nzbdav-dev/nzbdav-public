@@ -107,6 +107,11 @@ public class ConfigManager
         return (configValue != null ? bool.Parse(configValue) : defaultValue);
     }
 
+    public string? GetLibraryDir()
+    {
+        return StringUtil.EmptyToNull(GetConfigValue("media.library-dir"));
+    }
+
     public class ConfigEventArgs : EventArgs
     {
         public Dictionary<string, string> ChangedConfig { get; set; } = new();

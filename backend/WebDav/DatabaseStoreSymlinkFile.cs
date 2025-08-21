@@ -37,11 +37,16 @@ public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, Config
 
     private string GetTargetPath()
     {
+        return GetTargetPath(davFile, configManager.GetRcloneMountDir());
+    }
+
+    public static string GetTargetPath(DavItem davFile, string mountDir)
+    {
         var pathParts = davFile.Id.ToString()
             .Select(x => x.ToString())
             .Take(DatabaseStoreIdsCollection.FanningDepth)
             .Prepend(DavItem.IdsFolder.Name)
-            .Prepend(configManager.GetRcloneMountDir())
+            .Prepend(mountDir)
             .Append(davFile.Id.ToString())
             .ToArray();
         return Path.Join(pathParts);
