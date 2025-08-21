@@ -30,7 +30,7 @@ export function SabnzbdSettings({ config, setNewConfig }: SabnzbdSettingsProps) 
                     </Button>
                 </InputGroup>
                 <Form.Text id="api-key-help" muted>
-                    Use this API key when configuring your download client in Radarr or Sonarr
+                    Use this API key when configuring your download client in Radarr or Sonarr.
                 </Form.Text>
             </Form.Group>
             <hr />

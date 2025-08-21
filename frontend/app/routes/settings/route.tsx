@@ -20,6 +20,7 @@ const defaultConfig = {
     "usenet.pass": "",
     "webdav.user": "",
     "webdav.pass": "",
+    "webdav.show-hidden-files": "false",
     "rclone.mount-dir": "",
 }
 

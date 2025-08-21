@@ -100,6 +100,13 @@ public class ConfigManager
         return (configValue != null ? bool.Parse(configValue) : defaultValue);
     }
 
+    public bool ShowHiddenWebdavFiles()
+    {
+        var defaultValue = false;
+        var configValue = StringUtil.EmptyToNull(GetConfigValue("webdav.show-hidden-files"));
+        return (configValue != null ? bool.Parse(configValue) : defaultValue);
+    }
+
     public class ConfigEventArgs : EventArgs
     {
         public Dictionary<string, string> ChangedConfig { get; set; } = new();
