@@ -1,11 +1,13 @@
 import type { Route } from "./+types/route";
 import styles from "./route.module.css"
-import { Tabs, Tab, Button } from "react-bootstrap"
+import { Tabs, Tab, Button, Form } from "react-bootstrap"
 import { backendClient } from "~/clients/backend-client.server";
 import { isUsenetSettingsUpdated, UsenetSettings } from "./usenet/usenet";
-import React from "react";
+import React, { useEffect } from "react";
 import { isSabnzbdSettingsUpdated, isSabnzbdSettingsValid, SabnzbdSettings } from "./sabnzbd/sabnzbd";
 import { isWebdavSettingsUpdated, isWebdavSettingsValid, WebdavSettings } from "./webdav/webdav";
+import { isLibrarySettingsUpdated, LibrarySettings } from "./library/library";
+import { Maintenance } from "./maintenance/maintenance";
 
 const defaultConfig = {
     "api.key": "",
@@ -22,7 +24,10 @@ const defaultConfig = {
     "webdav.pass": "",
     "webdav.show-hidden-files": "false",
     "rclone.mount-dir": "",
+    "media.library-dir": "",
 }
+
+const advancedTabs = ["library", "maintenance"];
 
 export async function loader({ request }: Route.LoaderArgs) {
     // fetch the config items
@@ -47,20 +52,26 @@ type BodyProps = {
 };
 
 function Body(props: BodyProps) {
+    // stateful variables
     const [config, setConfig] = React.useState(props.config);
     const [newConfig, setNewConfig] = React.useState(config);
     const [isUsenetSettingsReadyToSave, setIsUsenetSettingsReadyToSave] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [isSaved, setIsSaved] = React.useState(false);
+    const [showAdvanced, setShowAdvanced] = React.useState(false);
+    const [activeTab, setActiveTab] = React.useState('usenet');
 
+    // derived variables
     const iseUsenetUpdated = isUsenetSettingsUpdated(config, newConfig);
     const isSabnzbdUpdated = isSabnzbdSettingsUpdated(config, newConfig);
     const isWebdavUpdated = isWebdavSettingsUpdated(config, newConfig);
-    const isUpdated = iseUsenetUpdated || isSabnzbdUpdated || isWebdavUpdated;
+    const isLibraryUpdated = isLibrarySettingsUpdated(config, newConfig);
+    const isUpdated = iseUsenetUpdated || isSabnzbdUpdated || isWebdavUpdated || isLibraryUpdated;
 
     const usenetTitle = iseUsenetUpdated ? "Usenet ✏️" : "Usenet";
     const sabnzbdTitle = isSabnzbdUpdated ? "SABnzbd ✏️" : "SABnzbd";
     const webdavTitle = isWebdavUpdated ? "WebDAV ✏️" : "WebDAV";
+    const libraryTitle = isLibraryUpdated ? "Library ✏️" : "Library";
 
     const saveButtonLabel = isSaving ? "Saving..."
         : !isUpdated && isSaved ? "Saved ✅"
@@ -73,6 +84,13 @@ function Body(props: BodyProps) {
         : saveButtonLabel === "Saved ✅" ? "success"
         : "secondary";
     const isSaveButtonDisabled = saveButtonLabel !== "Save";
+
+    // effects
+    useEffect(() => {
+        if (!showAdvanced && advancedTabs.includes(activeTab)) {
+            setActiveTab("usenet");
+        }
+    }, [showAdvanced, activeTab, setActiveTab])
 
     // events
     const onClear = React.useCallback(() => {
@@ -106,7 +124,8 @@ function Body(props: BodyProps) {
     return (
         <div className={styles.container}>
             <Tabs
-                defaultActiveKey="usenet"
+                activeKey={activeTab}
+                onSelect={(k) => setActiveTab(k!)}
                 className={styles.tabs}
             >
                 <Tab eventKey="usenet" title={usenetTitle}>
@@ -118,8 +137,27 @@ function Body(props: BodyProps) {
                 <Tab eventKey="webdav" title={webdavTitle}>
                     <WebdavSettings config={newConfig} setNewConfig={setNewConfig} />
                 </Tab>
+                {showAdvanced &&
+                    <Tab eventKey="library" title={libraryTitle}>
+                        <LibrarySettings savedConfig={config} config={newConfig} setNewConfig={setNewConfig} />
+                    </Tab>
+                }
+                {showAdvanced &&
+                    <Tab eventKey="maintenance" title="Maintenance">
+                        <Maintenance savedConfig={config} />
+                    </Tab>
+                }
             </Tabs>
             <hr />
+
+            <Form.Check
+                style={{ marginBottom: '20px' }}
+                type="checkbox"
+                id="advanced-settings-checkbox"
+                label="Show Advanced Settings"
+                checked={showAdvanced}
+                onChange={(e) => setShowAdvanced(Boolean(e.target.checked))} />
+
             {isUpdated && <Button
                 className={styles.button}
                 variant="secondary"

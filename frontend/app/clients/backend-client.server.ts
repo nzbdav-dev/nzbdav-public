@@ -235,6 +235,17 @@ class BackendClient {
 
         return await response.json();
     }
+
+    public async migrateLibrarySymlinks(): Promise<boolean> {
+        let url = process.env.BACKEND_URL + '/api/migrate-library-symlinks';
+        const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
+        const response = await fetch(url, { headers: { "x-api-key": apiKey } });
+        if (!response.ok) {
+            throw new Error(`Failed to begin migrating library symlinks.`);
+        }
+
+        return true;
+    }
 }
 
 export const backendClient = new BackendClient();
