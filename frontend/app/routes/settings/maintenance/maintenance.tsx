@@ -7,11 +7,14 @@ type MaintenanceProps = {
 };
 
 export function Maintenance({ savedConfig }: MaintenanceProps) {
+    // stateful variables
     const [connected, setConnected] = useState<boolean>(false);
     const [progress, setProgress] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState<boolean>(false);
+
+    // derived variables
     const libraryDir = savedConfig["media.library-dir"];
-    const isFinished = progress === "complete" || progress?.startsWith("failed");
+    const isFinished = progress?.startsWith("complete") || progress?.startsWith("failed");
     const isRunning = !isFinished && (isFetching || progress !== null);
     const isRunButtonEnabled = !!libraryDir && connected && !isRunning;
     const runButtonVariant = isRunButtonEnabled ? 'success' : 'secondary';
@@ -23,6 +26,7 @@ export function Maintenance({ savedConfig }: MaintenanceProps) {
         processed = parts[1];
     }
 
+    // effects
     useEffect(() => {
         let ws: WebSocket;
         let disposed = false;
@@ -37,12 +41,14 @@ export function Maintenance({ savedConfig }: MaintenanceProps) {
         return connect();
     }, [setProgress]);
 
+    // events
     const onRun = useCallback(async () => {
         setIsFetching(true);
         await fetch("/tasks/migrate-library-symlinks");
         setIsFetching(false);
     }, [setIsFetching]);
 
+    // view
     return (
         <div className={styles.container}>
             {!libraryDir &&

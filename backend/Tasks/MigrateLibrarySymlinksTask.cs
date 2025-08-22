@@ -78,7 +78,8 @@ public class MigrateLibrarySymlinksTask(
             }
 
             // send final progress report
-            _ = websocketManager.SendMessage(WebsocketTopic.SymlinkTaskProgress, "complete");
+            var finalReport = $"complete: {retargetted}/{processed} re-targetted";
+            _ = websocketManager.SendMessage(WebsocketTopic.SymlinkTaskProgress, finalReport);
         }
         catch (Exception ex)
         {
