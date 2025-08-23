@@ -19,6 +19,7 @@ public class DatabaseStoreSymlinkCollection(
 {
     public override string Name => davDirectory.Name;
     public override string UniqueKey => davDirectory.Id.ToString();
+    public override DateTime CreatedAt => davDirectory.CreatedAt;
 
     private string RelativePath => davDirectory.Id == DavItem.SymlinkFolder.Id ? "" : Path.Join(parentPath, Name);
     private Guid TargetId => davDirectory.Id == DavItem.SymlinkFolder.Id ? DavItem.ContentFolder.Id : davDirectory.Id;
@@ -40,7 +41,14 @@ public class DatabaseStoreSymlinkCollection(
 
     protected override async Task<IStoreItem[]> GetAllItemsAsync(CancellationToken cancellationToken)
     {
-        return (await dbClient.GetDirectoryChildrenAsync(TargetId, cancellationToken))
+        // if we are a category folder within the /completed-symlinks dir,
+        // then we only want to show children that correspond to Completed History items.
+        var isCategoryFolder = davDirectory.ParentId == DavItem.ContentFolder.Id;
+        var children = isCategoryFolder
+            ? await dbClient.GetCompletedSymlinkCategoryChildren(davDirectory.Name, cancellationToken)
+            : await dbClient.GetDirectoryChildrenAsync(TargetId, cancellationToken);
+
+        return children
             .Select(GetItem)
             .Where(x => !DeletedFiles.IsDeleted(x.Name)) // must appear after Select(GetItem) for correct Name.
             .ToArray();

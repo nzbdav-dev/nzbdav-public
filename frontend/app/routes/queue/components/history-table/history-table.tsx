@@ -1,44 +1,113 @@
-import type { HistoryResponse } from "~/clients/backend-client.server"
-import styles from "./history-table.module.css"
-import { Table } from "react-bootstrap"
+import type { HistoryResponse, HistorySlot } from "~/clients/backend-client.server"
 import { CategoryBadge, formatFileSize, StatusBadge } from "../queue-table/queue-table"
+import { ActionButton } from "../action-button/action-button"
+import { PageTable } from "../page-table/page-table"
+import tableStyles from "../page-table/page-table.module.css"
+import { Truncate } from "../truncate/truncate"
+import { useCallback, useState } from "react"
+import { ConfirmModal } from "../confirm-modal/confirm-modal"
+import { Link } from "react-router"
 
 export type HistoryTableProps = {
     history: HistoryResponse
 }
 
 export function HistoryTable({ history }: HistoryTableProps) {
-
     return (
-        <Table responsive>
+        <PageTable responsive>
             <thead>
                 <tr>
-                    <th className={styles["first-table-header"]}>Name</th>
-                    <th className={styles["table-header"]}>Category</th>
-                    <th className={styles["table-header"]}>Status</th>
-                    <th className={styles["last-table-header"]}>Size</th>
+                    <th>Name</th>
+                    <th className={tableStyles.disappear}>Category</th>
+                    <th className={tableStyles.disappear}>Status</th>
+                    <th className={tableStyles.disappear}>Size</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                {history.slots.map((slot, index) =>
-                    <tr key={index}>
-                        <td className={styles["row-title"]}>
-                            <div className={styles.truncate}>
-                                {slot.name}
-                            </div>
-                        </td>
-                        <td className={styles["row-column"]}>
-                            <CategoryBadge category={slot.category} />
-                        </td>
-                        <td className={styles["row-column"]}>
-                            <StatusBadge status={slot.status} error={slot.fail_message} />
-                        </td>
-                        <td className={styles["row-column"]}>
-                            {formatFileSize(slot.bytes)}
-                        </td>
-                    </tr>
+                {history.slots.map(slot =>
+                    <HistoryRow slot={slot} key={slot.nzo_id} />
                 )}
             </tbody>
-        </Table>
+        </PageTable>
     );
+}
+
+
+type HistoryRowProps = {
+    slot: HistorySlot
+}
+
+export function HistoryRow({ slot }: HistoryRowProps) {
+    // state
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeleted, setIsDeleted] = useState(false);
+    const className = isDeleting ? tableStyles.deleting : undefined;
+
+    // events
+    const onDelete = useCallback(() => {
+        setIsConfirmingDelete(true);
+    }, [setIsConfirmingDelete]);
+
+    const onCancelDelete = useCallback(() => {
+        setIsConfirmingDelete(false);
+    }, [setIsConfirmingDelete]);
+
+    const onConfirmDelete = useCallback(async (deleteCompletedFiles?: boolean) => {
+        setIsConfirmingDelete(false);
+        setIsDeleting(true);
+        try {
+            const url = '/queue/remove-from-history'
+                + `?nzo_id=${slot.nzo_id}`
+                + `&del_completed_files=${deleteCompletedFiles ? 1 : 0}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === true) {
+                    setIsDeleted(true);
+                    return;
+                }
+            }
+        } catch { }
+        setIsDeleting(false);
+    }, [slot.nzo_id, setIsConfirmingDelete, setIsDeleting, setIsDeleted]);
+
+    // view
+    return isDeleted ? null : (
+        <>
+            <tr className={className}>
+                <td>
+                    <Truncate>{slot.nzb_name}</Truncate>
+                    <div className={tableStyles.reappear}>
+                        <StatusBadge status={slot.status} error={slot.fail_message} />
+                        <CategoryBadge category={slot.category} />
+                        <div>{formatFileSize(slot.bytes)}</div>
+                    </div>
+                </td>
+                <td className={tableStyles.disappear}>
+                    <CategoryBadge category={slot.category} />
+                </td>
+                <td className={tableStyles.disappear}>
+                    <StatusBadge status={slot.status} error={slot.fail_message} />
+                </td>
+                <td className={tableStyles.disappear}>
+                    {formatFileSize(slot.bytes)}
+                </td>
+                <td>
+                    <Link to={`/explore/content/${slot.category}/${slot.name}`}>
+                        <ActionButton type="explore" />
+                    </Link>
+                    <ActionButton type="delete" onClick={onDelete} />
+                </td>
+            </tr>
+            <ConfirmModal
+                show={isConfirmingDelete}
+                title="Remove From History?"
+                message={slot.nzb_name}
+                checkboxMessage="Delete mounted files"
+                onConfirm={onConfirmDelete}
+                onCancel={onCancelDelete} />
+        </>
+    )
 }

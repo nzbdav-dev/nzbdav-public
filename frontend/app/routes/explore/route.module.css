@@ -97,3 +97,7 @@
     position: unset;
     min-height: unset;
 }
+
+.hidden * {
+    opacity: 50%;
+}

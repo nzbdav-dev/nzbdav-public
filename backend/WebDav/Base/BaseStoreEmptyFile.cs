@@ -9,6 +9,7 @@ public class BaseStoreEmptyFile(string name) : BaseStoreItem
     public override string Name => name;
     public override string UniqueKey { get; } = Guid.NewGuid().ToString();
     public override long FileSize => 0;
+    public override DateTime CreatedAt { get; } = DateTime.Now;
 
     public override Task<Stream> GetReadableStreamAsync(CancellationToken cancellationToken)
     {

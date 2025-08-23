@@ -20,7 +20,8 @@ public class FileAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) 
                 ParentId = mountDirectory.Id,
                 Name = result.FileName,
                 FileSize = result.FileSize,
-                Type = DavItem.ItemType.NzbFile
+                Type = DavItem.ItemType.NzbFile,
+                Path = Path.Join(mountDirectory.Path, result.FileName),
             };
 
             var davNzbFile = new DavNzbFile()

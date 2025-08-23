@@ -45,6 +45,8 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
+ARG NZBDAV_VERSION
+ENV NZBDAV_VERSION=${NZBDAV_VERSION}
 ENV NODE_ENV=production
 ENV LOG_LEVEL=warning
 

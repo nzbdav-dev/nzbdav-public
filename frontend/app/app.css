@@ -7,7 +7,6 @@
   --page-padding: 25px;
 }
 
-
 html, body {
   margin: 0;
   min-width: 100%;
@@ -16,4 +15,13 @@ html, body {
   background-color: var(--body-background-color);
   color: white;
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* bootstrap overrides */
+.modal-open {
+  overflow-y: unset !important;
+}
+.modal {
+  --bs-modal-margin: 20px !important;
+  --bs-modal-bg: hsl(196.8 25% 14.51%);
 }

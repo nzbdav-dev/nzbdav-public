@@ -72,6 +72,10 @@ namespace NzbWebDAV.Database.Migrations
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("Type")
                         .HasColumnType("INTEGER");
 
@@ -123,6 +127,9 @@ namespace NzbWebDAV.Database.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("DownloadDirId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("DownloadStatus")
                         .HasColumnType("INTEGER");
 
@@ -150,6 +157,8 @@ namespace NzbWebDAV.Database.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("Category", "CreatedAt");
+
+                    b.HasIndex("Category", "DownloadDirId");
 
                     b.ToTable("HistoryItems", (string)null);
                 });

@@ -25,7 +25,7 @@ public class BaseStoreItemPropertyManager() : PropertyManager<BaseStoreItem>(Dav
         },
         new DavGetLastModified<BaseStoreItem>
         {
-            Getter = _ => default
+            Getter = x => x.CreatedAt
         },
         new Win32FileAttributes<BaseStoreItem>
         {

@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
@@ -73,11 +73,14 @@ public class QueueItemProcessor(
 
     private async Task ProcessQueueItemAsync(DateTime startTime)
     {
-        // This NZB is already processed and mounted
-        if (await IsAlreadyDownloaded())
+        // if the mount folder already exists,
+        // then we've already downloaded this nzb and we can mark the job as completed.
+        var existingMountFolder = await GetMountFolder();
+        var isAlreadyDownloaded = existingMountFolder is not null;
+        if (isAlreadyDownloaded)
         {
             Log.Information($"Nzb `{queueItem.JobName}` is a duplicate. Skipping and marking complete.");
-            await MarkQueueItemCompleted(startTime);
+            await MarkQueueItemCompleted(startTime, error: null, () => existingMountFolder);
             return;
         }
 
@@ -85,15 +88,16 @@ public class QueueItemProcessor(
         var documentBytes = Encoding.UTF8.GetBytes(queueItem.NzbContents);
         using var stream = new MemoryStream(documentBytes);
         var nzb = await NzbDocument.LoadAsync(stream);
+        var nzbFiles = nzb.Files.Where(x => x.Segments.Count > 0).ToList();
 
         // parse filenames for each nzb file
-        var filenamesTaskDictionary = nzb.Files.ToDictionary(x => x, x => x.GetFileName(usenetClient));
+        var filenamesTaskDictionary = nzbFiles.ToDictionary(x => x, x => x.GetFileName(usenetClient));
         var filenamesDictionary = new Dictionary<NzbFile, string>();
         foreach (var filenameTask in filenamesTaskDictionary)
             filenamesDictionary[filenameTask.Key] = await filenameTask.Value;
 
         // start file processing tasks
-        var fileProcessingTasks = nzb.Files
+        var fileProcessingTasks = nzbFiles
             .DistinctBy(x => filenamesDictionary[x])
             .Select(x => GetFileProcessor(x, filenamesDictionary[x]))
             .Where(x => x is not null)
@@ -117,6 +121,8 @@ public class QueueItemProcessor(
             // validate video files found
             if (configManager.IsEnsureImportableVideoEnabled())
                 new EnsureImportableVideoValidator(dbClient).ThrowIfValidationFails();
+
+            return mountFolder;
         });
     }
 
@@ -127,17 +133,17 @@ public class QueueItemProcessor(
             : null;
     }
 
-    private async Task<bool> IsAlreadyDownloaded()
+    private async Task<DavItem?> GetMountFolder()
     {
         var query = from mountFolder in dbClient.Ctx.Items
             join categoryFolder in dbClient.Ctx.Items on mountFolder.ParentId equals categoryFolder.Id
             where mountFolder.Name == queueItem.JobName
-                && mountFolder.ParentId != null
-                && categoryFolder.Name == queueItem.Category
-                && categoryFolder.ParentId == DavItem.ContentFolder.Id
+                  && mountFolder.ParentId != null
+                  && categoryFolder.Name == queueItem.Category
+                  && categoryFolder.ParentId == DavItem.ContentFolder.Id
             select mountFolder;
 
-        return await query.AnyAsync();
+        return await query.FirstOrDefaultAsync(ct);
     }
 
     private DavItem GetOrCreateCategoryFolder()
@@ -156,6 +162,7 @@ public class QueueItemProcessor(
             ParentId = DavItem.ContentFolder.Id,
             Name = queueItem.Category,
             Type = DavItem.ItemType.Directory,
+            Path = Path.Join(DavItem.ContentFolder.Path, queueItem.Category)
         };
         dbClient.Ctx.Items.Add(categoryFolder);
         return categoryFolder;
@@ -170,12 +177,13 @@ public class QueueItemProcessor(
             ParentId = categoryFolder.Id,
             Name = queueItem.JobName,
             Type = DavItem.ItemType.Directory,
+            Path = Path.Join(categoryFolder.Path, queueItem.JobName)
         };
         dbClient.Ctx.Items.Add(mountFolder);
         return mountFolder;
     }
 
-    private HistoryItem CreateHistoryItem(DateTime jobStartTime, string? errorMessage = null)
+    private HistoryItem CreateHistoryItem(DavItem? mountFolder, DateTime jobStartTime, string? errorMessage = null)
     {
         return new HistoryItem()
         {
@@ -189,7 +197,8 @@ public class QueueItemProcessor(
                 : HistoryItem.DownloadStatusOption.Failed,
             TotalSegmentBytes = queueItem.TotalSegmentBytes,
             DownloadTimeSeconds = (int)(DateTime.Now - jobStartTime).TotalSeconds,
-            FailMessage = errorMessage
+            FailMessage = errorMessage,
+            DownloadDirId = mountFolder?.Id,
         };
     }
 
@@ -197,13 +206,13 @@ public class QueueItemProcessor(
     (
         DateTime startTime,
         string? error = null,
-        Action? databaseOperations = null
+        Func<DavItem?>? databaseOperations = null
     )
     {
         dbClient.Ctx.ChangeTracker.Clear();
-        databaseOperations?.Invoke();
+        var mountFolder = databaseOperations?.Invoke();
         dbClient.Ctx.QueueItems.Remove(queueItem);
-        dbClient.Ctx.HistoryItems.Add(CreateHistoryItem(startTime, error));
+        dbClient.Ctx.HistoryItems.Add(CreateHistoryItem(mountFolder, startTime, error));
         await dbClient.Ctx.SaveChangesAsync(ct);
     }
 }

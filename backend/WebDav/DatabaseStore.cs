@@ -1,4 +1,5 @@
-﻿using NWebDav.Server.Stores;
+﻿using Microsoft.AspNetCore.Http;
+using NWebDav.Server.Stores;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
@@ -8,6 +9,7 @@ using NzbWebDAV.Queue;
 namespace NzbWebDAV.WebDav;
 
 public class DatabaseStore(
+    IHttpContextAccessor httpContextAccessor,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetStreamingClient usenetClient,
@@ -16,6 +18,7 @@ public class DatabaseStore(
 {
     private readonly DatabaseStoreCollection _root = new(
         DavItem.Root,
+        httpContextAccessor.HttpContext!,
         dbClient,
         configManager,
         usenetClient,

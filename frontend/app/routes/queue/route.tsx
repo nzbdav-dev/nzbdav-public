@@ -51,14 +51,16 @@ function Body({ loaderData, actionData }: BodyProps) {
             </div>
 
             {/* history */}
-            <div className={styles.section}>
-                <h3 className={styles["section-title"]}>
-                    History
-                </h3>
-                <div className={styles["section-body"]}>
-                    <HistoryTable history={history} />
+            {history?.slots?.length > 0 &&
+                <div className={styles.section}>
+                    <h3 className={styles["section-title"]}>
+                        History
+                    </h3>
+                    <div className={styles["section-body"]}>
+                        <HistoryTable history={history} />
+                    </div>
                 </div>
-            </div>
+            }
         </div>
     );
 }

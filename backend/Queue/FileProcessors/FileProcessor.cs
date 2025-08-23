@@ -23,14 +23,11 @@ public class FileProcessor(
     {
         try
         {
-            var firstSegment = nzbFile.Segments[0].MessageId.Value;
-            var header = await usenet.GetSegmentYencHeaderAsync(firstSegment, ct);
-
             return new Result()
             {
                 NzbFile = nzbFile,
                 FileName = filename,
-                FileSize = header.FileSize,
+                FileSize = await usenet.GetFileSizeAsync(nzbFile, ct),
             };
         }
 

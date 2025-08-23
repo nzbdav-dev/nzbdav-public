@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
-using NzbWebDAV.Utils;
 
 namespace NzbWebDAV.Api.SabControllers.GetHistory;
 

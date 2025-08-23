@@ -41,15 +41,17 @@ public class RarAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) :
             var pathWithinArchive = archiveFile.Key;
             var rarParts = archiveFile.Value.ToArray();
             var parentDirectory = EnsurePath(pathWithinArchive);
+            var name = Path.GetFileName(pathWithinArchive);
 
             var davItem = new DavItem()
             {
                 Id = Guid.NewGuid(),
                 CreatedAt = DateTime.Now,
                 ParentId = parentDirectory.Id,
-                Name = Path.GetFileName(pathWithinArchive),
+                Name = name,
                 FileSize = rarParts.Sum(x => x.ByteCount),
-                Type = DavItem.ItemType.RarFile
+                Type = DavItem.ItemType.RarFile,
+                Path = Path.Join(parentDirectory.Path, name),
             };
 
             var davRarFile = new DavRarFile()
@@ -65,7 +67,10 @@ public class RarAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) :
 
     private DavItem EnsurePath(string pathWithinArchive)
     {
-        var pathSegments = pathWithinArchive.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var pathSegments = pathWithinArchive
+            .Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            .Prepend("extracted")
+            .ToArray();
         var parentDirectory = mountDirectory;
         var pathKey = "";
         for (var i = 0; i < pathSegments.Length - 1; i++)
@@ -88,7 +93,8 @@ public class RarAggregator(DavDatabaseClient dbClient, DavItem mountDirectory) :
             CreatedAt = DateTime.Now,
             ParentId = parentDirectory.Id,
             Name = directoryName,
-            Type = DavItem.ItemType.Directory
+            Type = DavItem.ItemType.Directory,
+            Path = Path.Join(parentDirectory.Path, directoryName),
         };
         _directoryCache.Add(pathKey, directory);
         dbClient.Ctx.Items.Add(directory);

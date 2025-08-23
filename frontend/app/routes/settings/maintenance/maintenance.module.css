@@ -1,0 +1,31 @@
+.container {
+    max-width: 600px;
+}
+
+.task {
+    background-color: #02181d;
+    padding: 1rem;
+    color: #dee2e6;
+    border-radius: .375rem;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.25);
+}
+
+.run {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.task-progress {
+    font-size:12px;
+}
+
+.list {
+    margin-bottom: 0;
+}
+
+.list-item {
+    margin-top: 5px
+}

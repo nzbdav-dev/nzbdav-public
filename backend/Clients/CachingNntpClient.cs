@@ -21,6 +21,7 @@ public class CachingNntpClient(INntpClient client, MemoryCache cache) : Wrapping
 
     public override async Task<long> GetFileSizeAsync(NzbFile file, CancellationToken cancellationToken)
     {
+        if (file.Segments.Count == 0) return 0;
         var header = await GetSegmentYencHeaderAsync(file.Segments[0].MessageId, cancellationToken);
         return header.FileSize;
     }

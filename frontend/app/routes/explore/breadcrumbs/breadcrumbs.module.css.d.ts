@@ -3,6 +3,7 @@ declare const styles: {
   readonly "directory": string;
   readonly "home-icon": string;
   readonly "separator": string;
+  readonly "home": string;
 };
 export = styles;
 

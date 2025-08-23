@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Database.Models;
 
 namespace NzbWebDAV.Database;
@@ -6,6 +6,21 @@ namespace NzbWebDAV.Database;
 public sealed class DavDatabaseClient(DavDatabaseContext ctx)
 {
     public DavDatabaseContext Ctx => ctx;
+
+    // file
+    public Task<DavItem?> GetFileById(string id)
+    {
+        var guid = Guid.Parse(id);
+        return ctx.Items.Where(i => i.Id == guid).FirstOrDefaultAsync();
+    }
+
+    public Task<List<DavItem>> GetFilesByIdPrefix(string prefix)
+    {
+        return ctx.Items
+            .Where(i => EF.Functions.Like(i.Id.ToString(), $"{prefix}%"))
+            .Where(i => i.Type == DavItem.ItemType.NzbFile || i.Type == DavItem.ItemType.RarFile)
+            .ToListAsync();
+    }
 
     // directory
     public Task<List<DavItem>> GetDirectoryChildrenAsync(Guid dirId, CancellationToken ct = default)
@@ -115,6 +130,11 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     }
 
     // history
+    public async Task<HistoryItem?> GetHistoryItemAsync(string id)
+    {
+        return await Ctx.HistoryItems.FirstOrDefaultAsync(x => x.Id == Guid.Parse(id));
+    }
+
     public async Task RemoveHistoryItemAsync(string id)
     {
         try
@@ -132,5 +152,18 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     private class FileSizeResult
     {
         public long TotalSize { get; init; }
+    }
+
+    // completed-symlinks
+    public async Task<List<DavItem>> GetCompletedSymlinkCategoryChildren(string category, CancellationToken ct = default)
+    {
+        var query = from historyItem in Ctx.HistoryItems
+            where historyItem.Category == category
+                  && historyItem.DownloadStatus == HistoryItem.DownloadStatusOption.Completed
+                  && historyItem.DownloadDirId != null
+            join davItem in Ctx.Items on historyItem.DownloadDirId equals davItem.Id
+            where davItem.Type == DavItem.ItemType.Directory
+            select davItem;
+        return await query.Distinct().ToListAsync(ct);
     }
 }

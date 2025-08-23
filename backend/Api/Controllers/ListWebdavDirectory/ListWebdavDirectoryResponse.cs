@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using NzbWebDAV.Database.Models;
-using NzbWebDAV.Extensions;
-
-namespace NzbWebDAV.Api.Controllers.ListWebdavDirectory;
+﻿namespace NzbWebDAV.Api.Controllers.ListWebdavDirectory;
 
 public class ListWebdavDirectoryResponse
 {

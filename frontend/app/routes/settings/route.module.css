@@ -11,6 +11,15 @@
     --bs-nav-link-color: #93a1a1;
     --bs-nav-link-hover-color: #93a1a1;
     margin-bottom: 25px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: unset;
+    scrollbar-width: none;
+    white-space: nowrap;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .button {

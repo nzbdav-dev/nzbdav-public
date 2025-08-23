@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using NWebDav.Server;
 using NWebDav.Server.Stores;
 using NzbWebDAV.Api.SabControllers.AddFile;
@@ -14,11 +15,12 @@ namespace NzbWebDAV.WebDav;
 
 public class DatabaseStoreWatchFolder(
     DavItem davDirectory,
+    HttpContext httpContext,
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetStreamingClient usenetClient,
     QueueManager queueManager
-) : DatabaseStoreCollection(davDirectory, dbClient, configManager, usenetClient, queueManager)
+) : DatabaseStoreCollection(davDirectory, httpContext, dbClient, configManager, usenetClient, queueManager)
 {
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {

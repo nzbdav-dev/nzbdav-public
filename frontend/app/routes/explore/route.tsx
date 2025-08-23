@@ -69,13 +69,13 @@ function Body(props: ExplorePageData) {
             {!isNavigating &&
                 <div>
                     {items.filter(x => x.isDirectory).map((x, index) =>
-                        <Link key={`${index}_dir_item`} to={getDirectoryPath(x.name)} className={styles.item}>
+                        <Link key={`${index}_dir_item`} to={getDirectoryPath(x.name)} className={getClassName(x)}>
                             <div className={styles["directory-icon"]} />
                             <div className={styles["item-name"]}>{x.name}</div>
                         </Link>
                     )}
                     {items.filter(x => !x.isDirectory).map((x, index) =>
-                        <a key={`${index}_file_item`} href={getFilePath(x as ExploreFile)} className={styles.item}>
+                        <a key={`${index}_file_item`} href={getFilePath(x as ExploreFile)} className={getClassName(x)}>
                             <div className={getIcon(x as ExploreFile)} />
                             <div className={styles["item-name"]}>{x.name}</div>
                         </a>
@@ -104,4 +104,10 @@ function getWebdavPath(pathname: string): string {
 
 function getParentDirectories(webdavPath: string): string[] {
     return webdavPath == "" ? [] : webdavPath.split('/');
+}
+
+function getClassName(item: DirectoryItem | ExploreFile) {
+    let className = styles.item;
+    if (item.name.startsWith('.')) className += " " + styles.hidden;
+    return className;
 }

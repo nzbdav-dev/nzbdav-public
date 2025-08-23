@@ -40,6 +40,7 @@ public static class NzbFileExtensions
         CancellationToken ct = default
     )
     {
+        if (file.Segments.Count == 0) return "";
         var firstSegment = file.Segments[0].MessageId.Value;
         var header = await client.GetSegmentYencHeaderAsync(firstSegment, default);
         return header.FileName;

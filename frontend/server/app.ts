@@ -25,6 +25,7 @@ app.use((req, res, next) => {
     || req.method.toUpperCase() === "OPTIONS"
     || req.path.startsWith("/api")
     || req.path.startsWith("/view")
+    || req.path.startsWith("/.ids")
     || req.path.startsWith("/nzbs")
     || req.path.startsWith("/content")
     || req.path.startsWith("/completed-symlinks")
