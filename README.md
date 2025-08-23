@@ -194,7 +194,12 @@ $ ls -la /mnt/nzbdav
 ```
 
 ## Accessing the rclone volume from a separate stack.
-Note: Your rclone volume **must**. To do so, see the bottom 11 lines in the example compose file above.
+Note: Your rclone volume **must** be already created by another stack, for example: 
+
+- Media backend: nzbdav + sonarr + radarr <--- This stack is creating the rclone volume
+- Media frontend: jellyfin <--- Mounts the external arrstack rclone volume
+
+To do so, see the bottom 11 lines in the example compose file in the above section.
 
 The example below uses ubuntu again, but the concept is the same for a different container such as sonarr.
 
