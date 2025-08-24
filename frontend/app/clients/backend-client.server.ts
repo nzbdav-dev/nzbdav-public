@@ -251,7 +251,7 @@ class BackendClient {
 export const backendClient = new BackendClient();
 
 export type QueueResponse = {
-    slots: [QueueSlot]
+    slots: QueueSlot[]
 }
 
 export type QueueSlot = {
@@ -266,7 +266,7 @@ export type QueueSlot = {
 }
 
 export type HistoryResponse = {
-    slots: [HistorySlot]
+    slots: HistorySlot[]
 }
 
 export type HistorySlot = {

@@ -4,7 +4,7 @@ import type { IncomingMessage } from 'http';
 
 function initializeWebsocketServer(wss: WebSocketServer) {
     // keep track of socket subscriptions
-    const websockets = new Map<WebSocket, string>();
+    const websockets = new Map<WebSocket, any>();
     const subscriptions = new Map<string, Set<WebSocket>>();
     const lastMessage = new Map<string, string>();
     initializeWebsocketClient(subscriptions, lastMessage);
@@ -24,22 +24,32 @@ function initializeWebsocketServer(wss: WebSocketServer) {
 
                 // handle topic subscription
                 ws.onmessage = (event: WebSocket.MessageEvent) => {
-                    var topic = event.data.toString();
-                    websockets.set(ws, topic);
-                    var topicSubscriptions = subscriptions.get(topic);
-                    if (topicSubscriptions) topicSubscriptions.add(ws);
-                    else subscriptions.set(topic, new Set<WebSocket>([ws]));
-                    var messageToSend = lastMessage.get(topic);
-                    if (messageToSend) ws.send(messageToSend);
+                    try {
+                        var topics = JSON.parse(event.data.toString());
+                        websockets.set(ws, topics);
+                        for (const topic in topics) {
+                            var topicSubscriptions = subscriptions.get(topic);
+                            if (topicSubscriptions) topicSubscriptions.add(ws);
+                            else subscriptions.set(topic, new Set<WebSocket>([ws]));
+                            if (topics[topic] === 'state') {
+                                var messageToSend = lastMessage.get(topic);
+                                if (messageToSend) ws.send(messageToSend);
+                            }
+                        }
+                    } catch {
+                        ws.close(1003, "Could not process topic subscription. If recently updated, try refreshing the page.");
+                    }
                 };
 
                 // unsubscribe from topics
                 ws.onclose = () => {
-                    var topic = websockets.get(ws);
-                    if (topic) {
+                    var topics = websockets.get(ws);
+                    if (topics) {
                         websockets.delete(ws);
-                        var topicSubscriptions = subscriptions.get(topic);
-                        if (topicSubscriptions) topicSubscriptions.delete(ws);
+                        for (const topic in topics) {
+                            var topicSubscriptions = subscriptions.get(topic);
+                            if (topicSubscriptions) topicSubscriptions.delete(ws);
+                        }
                     }
                 };
             } catch (error) {
@@ -79,11 +89,11 @@ export function initializeWebsocketClient(subscriptions: Map<string, Set<WebSock
             var topicMessage = JSON.parse(rawMessage);
             var [topic, message] = [topicMessage.Topic, topicMessage.Message];
             if (!topic || !message) return;
-            lastMessage.set(topic, message);
+            lastMessage.set(topic, rawMessage);
             var subscribed = subscriptions.get(topic) || [];
             subscribed.forEach(client => {
                 if (client.readyState === client.OPEN) {
-                    client.send(message);
+                    client.send(rawMessage);
                 }
             });
         };

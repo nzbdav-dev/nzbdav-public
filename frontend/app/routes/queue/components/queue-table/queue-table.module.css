@@ -1,5 +1,0 @@
-@media not (pointer: coarse), (min-width: 900px) {
-    .failure-badge:hover {
-        cursor: pointer;
-    }
-}

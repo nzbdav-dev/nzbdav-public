@@ -1,0 +1,35 @@
+.badge {
+    display: inline-block;
+    line-height: 1;
+    border-radius: .375rem;
+    font-weight: 700;
+    font-size: .75em;
+    padding: .35em .65em;
+    color: #fff;
+    position: relative;
+    text-align: center;
+    vertical-align: bottom;
+    background-color: #222;
+    overflow: hidden;
+    width: 85px;
+}
+
+.badge-text {
+    position: relative;
+}
+
+.progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 100%;
+    background-color: rgba(var(--bs-primary-rgb));
+}
+
+@media not (pointer: coarse),
+(min-width: 900px) {
+    .failure-badge:hover {
+        cursor: pointer;
+    }
+}

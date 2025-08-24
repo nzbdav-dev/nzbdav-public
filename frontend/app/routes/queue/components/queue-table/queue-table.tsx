@@ -1,18 +1,18 @@
-import type { QueueResponse, QueueSlot } from "~/clients/backend-client.server"
-import styles from "./queue-table.module.css"
+import type { QueueSlot } from "~/clients/backend-client.server"
 import tableStyles from "../page-table/page-table.module.css"
-import { Badge, OverlayTrigger, Tooltip } from "react-bootstrap"
+import { Badge } from "react-bootstrap"
 import { ActionButton } from "../action-button/action-button"
 import { PageTable } from "../page-table/page-table"
 import { Truncate } from "../truncate/truncate"
 import { useCallback, useState } from "react"
 import { ConfirmModal } from "../confirm-modal/confirm-modal"
+import { StatusBadge } from "../status-badge/status-badge"
 
 export type QueueTableProps = {
-    queue: QueueResponse
+    queueSlots: QueueSlot[]
 }
 
-export function QueueTable({ queue }: QueueTableProps) {
+export function QueueTable({ queueSlots }: QueueTableProps) {
     return (
         <PageTable responsive striped>
             <thead>
@@ -25,7 +25,7 @@ export function QueueTable({ queue }: QueueTableProps) {
                 </tr>
             </thead>
             <tbody>
-                {queue.slots.map(slot =>
+                {queueSlots.map(slot =>
                     <QueueRow slot={slot} key={slot.nzo_id} />
                 )}
             </tbody>
@@ -76,7 +76,7 @@ export function QueueRow({ slot }: QueueRowProps) {
                 <td>
                     <Truncate>{slot.filename}</Truncate>
                     <div className={tableStyles.reappear}>
-                        <StatusBadge status={slot.status} />
+                        <StatusBadge status={slot.status} percentage={slot.percentage} />
                         <CategoryBadge category={slot.cat} />
                         <div>{formatFileSize(Number(slot.mb) * 1024 * 1024)}</div>
                     </div>
@@ -85,7 +85,7 @@ export function QueueRow({ slot }: QueueRowProps) {
                     <CategoryBadge category={slot.cat} />
                 </td>
                 <td className={tableStyles.disappear}>
-                    <StatusBadge status={slot.status} />
+                    <StatusBadge status={slot.status} percentage={slot.percentage} />
                 </td>
                 <td className={tableStyles.disappear}>
                     {formatFileSize(Number(slot.mb) * 1024 * 1024)}
@@ -112,25 +112,6 @@ export function CategoryBadge({ category }: { category: string }) {
     return <Badge bg={variant} style={{ width: '85px' }}>{categoryLower}</Badge>
 }
 
-export function StatusBadge({ status, error }: { status: string, error?: string }) {
-    const statusLower = status?.toLowerCase();
-    let variant = "secondary";
-    if (statusLower === "completed") variant = "success";
-    if (statusLower === "failed") variant = "danger";
-    if (statusLower === "downloading") variant = "primary";
-
-    if (error?.startsWith("Article with message-id")) error = "Missing articles";
-    const badgeClass = statusLower === "failed" ? styles["failure-badge"] : "";
-    const overlay = statusLower == "failed"
-        ? <Tooltip>{error}</Tooltip>
-        : <></>;
-
-    return (
-        <OverlayTrigger placement="top" overlay={overlay} trigger="click">
-            <Badge bg={variant} className={badgeClass} style={{ width: '85px' }}>{statusLower}</Badge>
-        </OverlayTrigger>
-    );
-}
 
 export function formatFileSize(bytes: number) {
     var suffix = "B";

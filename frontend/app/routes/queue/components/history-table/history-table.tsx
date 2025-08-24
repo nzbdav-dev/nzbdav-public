@@ -1,5 +1,5 @@
-import type { HistoryResponse, HistorySlot } from "~/clients/backend-client.server"
-import { CategoryBadge, formatFileSize, StatusBadge } from "../queue-table/queue-table"
+import type { HistorySlot } from "~/clients/backend-client.server"
+import { CategoryBadge, formatFileSize } from "../queue-table/queue-table"
 import { ActionButton } from "../action-button/action-button"
 import { PageTable } from "../page-table/page-table"
 import tableStyles from "../page-table/page-table.module.css"
@@ -7,12 +7,13 @@ import { Truncate } from "../truncate/truncate"
 import { useCallback, useState } from "react"
 import { ConfirmModal } from "../confirm-modal/confirm-modal"
 import { Link } from "react-router"
+import { StatusBadge } from "../status-badge/status-badge"
 
 export type HistoryTableProps = {
-    history: HistoryResponse
+    historySlots: HistorySlot[]
 }
 
-export function HistoryTable({ history }: HistoryTableProps) {
+export function HistoryTable({ historySlots }: HistoryTableProps) {
     return (
         <PageTable responsive>
             <thead>
@@ -25,7 +26,7 @@ export function HistoryTable({ history }: HistoryTableProps) {
                 </tr>
             </thead>
             <tbody>
-                {history.slots.map(slot =>
+                {historySlots.map(slot =>
                     <HistoryRow slot={slot} key={slot.nzo_id} />
                 )}
             </tbody>

@@ -1,6 +1,9 @@
 import { Alert, Button, Form } from "react-bootstrap";
 import styles from "./maintenance.module.css"
 import { useCallback, useEffect, useState } from "react";
+import { receiveMessage } from "~/utils/websocket-util";
+
+const symlinksTaskTopic = { 'stp': 'state' };
 
 type MaintenanceProps = {
     savedConfig: Record<string, string>
@@ -32,14 +35,14 @@ export function Maintenance({ savedConfig }: MaintenanceProps) {
         let disposed = false;
         function connect() {
             ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
-            ws.onmessage = (event) => setProgress(event.data);
-            ws.onopen = () => { setConnected(true); ws.send('stp'); }
+            ws.onmessage = receiveMessage((_, message) => setProgress(message));
+            ws.onopen = () => { setConnected(true); ws.send(JSON.stringify(symlinksTaskTopic)); }
             ws.onclose = () => { !disposed && setTimeout(() => connect(), 1000); setProgress(null) };
             ws.onerror = () => { ws.close() };
             return () => { disposed = true; ws.close(); }
         }
         return connect();
-    }, [setProgress]);
+    }, [setProgress, setConnected]);
 
     // events
     const onRun = useCallback(async () => {
@@ -64,7 +67,7 @@ export function Maintenance({ savedConfig }: MaintenanceProps) {
             }
             {libraryDir &&
                 <Alert variant="danger">
-                    <span style={{fontWeight: 'bold'}}>Danger</span>
+                    <span style={{ fontWeight: 'bold' }}>Danger</span>
                     <ul className={styles.list}>
                         <li className={styles["list-item"]}>
                             Make a backup of your organized media library

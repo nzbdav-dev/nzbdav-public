@@ -60,7 +60,7 @@
     margin-bottom: 5px;
 }
 
-.reappear div {
+.reappear > div {
     margin-left: 5px;
 }
 

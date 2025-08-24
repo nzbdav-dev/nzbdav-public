@@ -3,14 +3,34 @@ import type { Route } from "./+types/route";
 import { sessionStorage } from "~/auth/authentication.server";
 import styles from "./route.module.css"
 import { Alert } from 'react-bootstrap';
-import { backendClient, type HistoryResponse, type QueueResponse } from "~/clients/backend-client.server";
+import { backendClient, type HistorySlot, type QueueSlot } from "~/clients/backend-client.server";
 import { EmptyQueue } from "./components/empty-queue/empty-queue";
 import { HistoryTable } from "./components/history-table/history-table";
 import { QueueTable } from "./components/queue-table/queue-table";
+import { useEffect, useState } from "react";
+import { receiveMessage } from "~/utils/websocket-util";
+
+const topicNames = {
+    queueItemStatus: 'qs',
+    queueItemPercentage: 'qp',
+    queueItemAdded: 'qa',
+    queueItemRemoved: 'qr',
+    historyItemAdded: 'ha',
+    historyItemRemoved: 'hr',
+}
+const topicSubscriptions = {
+    [topicNames.queueItemStatus]: 'state',
+    [topicNames.queueItemPercentage]: 'state',
+    [topicNames.queueItemAdded]: 'event',
+    [topicNames.queueItemRemoved]: 'event',
+    [topicNames.historyItemAdded]: 'event',
+    [topicNames.historyItemRemoved]: 'event',
+}
 
 type BodyProps = {
-    loaderData: { queue: QueueResponse, history: HistoryResponse },
-    actionData: { error: string } | undefined
+    queueSlots: QueueSlot[],
+    historySlots: HistorySlot[],
+    error?: string,
 };
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -19,19 +39,79 @@ export async function loader({ request }: Route.LoaderArgs) {
     var queue = await queuePromise;
     var history = await historyPromise;
     return {
-        queue: queue,
-        history: history,
+        queueSlots: queue?.slots || [],
+        historySlots: history?.slots || [],
     }
 }
 
 export default function Queue(props: Route.ComponentProps) {
+    const [queueSlots, setQueueSlots] = useState(props.loaderData.queueSlots);
+    const [historySlots, setHistorySlots] = useState(props.loaderData.historySlots);
+    const error = props.actionData?.error;
+
+
+    useEffect(() => {
+        let ws: WebSocket;
+        let disposed = false;
+        function connect() {
+            ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
+            ws.onmessage = receiveMessage(onMessage);
+            ws.onopen = () => { ws.send(JSON.stringify(topicSubscriptions)); }
+            ws.onclose = () => { !disposed && setTimeout(() => connect(), 1000); };
+            ws.onerror = () => { ws.close() };
+            return () => { disposed = true; ws.close(); }
+        }
+
+        function onMessage(topic: string, message: string) {
+            if (topic == topicNames.queueItemStatus)
+                onChangeQueueSlotStatus(message);
+            if (topic == topicNames.queueItemPercentage)
+                onChangeQueueSlotPercentage(message);
+            else if (topic == topicNames.queueItemAdded)
+                onAddQueueSlot(JSON.parse(message));
+            else if (topic == topicNames.queueItemRemoved)
+                onRemoveQueueSlot(message);
+            else if (topic == topicNames.historyItemAdded)
+                onAddHistorySlot(JSON.parse(message));
+            else if (topic == topicNames.historyItemRemoved)
+                onRemoveHistorySlot(message);
+        }
+
+        function onChangeQueueSlotStatus(message: string) {
+            const [nzo_id, status] = message.split('|');
+            setQueueSlots(slots => slots.map(x => x.nzo_id === nzo_id ? { ...x, status } : x))
+        }
+
+        function onChangeQueueSlotPercentage(message: string) {
+            const [nzo_id, percentage] = message.split('|');
+            setQueueSlots(slots => slots.map(x => x.nzo_id === nzo_id ? { ...x, percentage } : x))
+        }
+
+        function onAddQueueSlot(queueSlot: QueueSlot) {
+            setQueueSlots(slots => [...slots, queueSlot])
+        }
+
+        function onRemoveQueueSlot(id: string) {
+            setQueueSlots(slots => slots.filter(x => x.nzo_id !== id));
+        }
+
+        function onAddHistorySlot(historySlot: HistorySlot) {
+            setHistorySlots(slots => [historySlot, ...slots])
+        }
+
+        function onRemoveHistorySlot(id: string) {
+            setHistorySlots(slots => slots.filter(x => x.nzo_id !== id));
+        }
+
+        return connect();
+    }, [setQueueSlots, setHistorySlots]);
+
     return (
-        <Body loaderData={props.loaderData} actionData={props.actionData} />
+        <Body queueSlots={queueSlots} historySlots={historySlots} error={error} />
     );
 }
 
-function Body({ loaderData, actionData }: BodyProps) {
-    const { queue, history } = loaderData;
+function Body({ queueSlots, historySlots, error }: BodyProps) {
     return (
         <div className={styles.container}>
             {/* queue */}
@@ -41,23 +121,23 @@ function Body({ loaderData, actionData }: BodyProps) {
                 </h3>
                 <div className={styles["section-body"]}>
                     {/* error message */}
-                    {actionData?.error &&
+                    {error &&
                         <Alert variant="danger">
-                            {actionData?.error}
+                            {error}
                         </Alert>
                     }
-                    {queue.slots.length > 0 ? <QueueTable queue={queue} /> : <EmptyQueue />}
+                    {queueSlots.length > 0 ? <QueueTable queueSlots={queueSlots} /> : <EmptyQueue />}
                 </div>
             </div>
 
             {/* history */}
-            {history?.slots?.length > 0 &&
+            {historySlots.length > 0 &&
                 <div className={styles.section}>
                     <h3 className={styles["section-title"]}>
                         History
                     </h3>
                     <div className={styles["section-body"]}>
-                        <HistoryTable history={history} />
+                        <HistoryTable historySlots={historySlots} />
                     </div>
                 </div>
             }
