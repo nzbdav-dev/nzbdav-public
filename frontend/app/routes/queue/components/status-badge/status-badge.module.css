@@ -8,9 +8,9 @@
     color: #fff;
     position: relative;
     text-align: center;
-    vertical-align: bottom;
+    vertical-align: baseline;
     background-color: #222;
-    overflow: hidden;
+    overflow: clip;
     width: 85px;
 }
 
