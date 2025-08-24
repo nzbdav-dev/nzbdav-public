@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NWebDav.Server;
@@ -53,6 +54,8 @@ class Program
 
         // initialize webapp
         var builder = WebApplication.CreateBuilder(args);
+        var maxRequestBodySize = EnvironmentUtil.GetLongVariable("MAX_REQUEST_BODY_SIZE") ?? 100 * 1024 * 1024;
+        builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = maxRequestBodySize);
         builder.Host.UseSerilog();
         builder.Services.AddControllers();
         builder.Services.AddHealthChecks();
