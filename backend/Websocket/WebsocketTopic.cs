@@ -1,7 +1,31 @@
 ﻿namespace NzbWebDAV.Websocket;
 
-public static class WebsocketTopic
+public class WebsocketTopic
 {
-    public const string UsenetConnections = "cxs";
-    public const string SymlinkTaskProgress = "stp";
+    // Stateful topics
+    public static readonly WebsocketTopic UsenetConnections = new("cxs", TopicType.State);
+    public static readonly WebsocketTopic SymlinkTaskProgress = new("stp", TopicType.State);
+    public static readonly WebsocketTopic QueueItemStatus = new("qs", TopicType.State);
+    public static readonly WebsocketTopic QueueItemProgress = new("qp", TopicType.State);
+
+    // Eventful topics
+    public static readonly WebsocketTopic QueueItemAdded = new("qa", TopicType.Event);
+    public static readonly WebsocketTopic QueueItemRemoved = new("qr", TopicType.Event);
+    public static readonly WebsocketTopic HistoryItemAdded = new("ha", TopicType.Event);
+    public static readonly WebsocketTopic HistoryItemRemoved = new("hr", TopicType.Event);
+
+    public readonly string Name;
+    public readonly TopicType Type;
+
+    private WebsocketTopic(string name, TopicType type)
+    {
+        Name = name;
+        Type = type;
+    }
+
+    public enum TopicType
+    {
+        State,
+        Event
+    }
 }

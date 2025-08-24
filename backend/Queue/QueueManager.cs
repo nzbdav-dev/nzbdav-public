@@ -2,6 +2,8 @@
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
+using NzbWebDAV.Utils;
+using NzbWebDAV.Websocket;
 using Serilog;
 
 namespace NzbWebDAV.Queue;
@@ -14,11 +16,17 @@ public class QueueManager : IDisposable
     private readonly CancellationTokenSource? _cancellationTokenSource;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ConfigManager _configManager;
+    private readonly WebsocketManager _websocketManager;
 
-    public QueueManager(UsenetStreamingClient usenetClient, ConfigManager configManager)
+    public QueueManager(
+        UsenetStreamingClient usenetClient,
+        ConfigManager configManager,
+        WebsocketManager websocketManager
+    )
     {
         _usenetClient = usenetClient;
         _configManager = configManager;
+        _websocketManager = websocketManager;
         _cancellationTokenSource = new CancellationTokenSource();
         _ = ProcessQueueAsync(_cancellationTokenSource.Token);
     }
@@ -93,7 +101,7 @@ public class QueueManager : IDisposable
     {
         var progressHook = new Progress<int>();
         var task = new QueueItemProcessor(
-            queueItem, dbClient, _usenetClient, _configManager, progressHook, cts.Token
+            queueItem, dbClient, _usenetClient, _configManager, _websocketManager, progressHook, cts.Token
         ).ProcessAsync();
         var inProgressQueueItem = new InProgressQueueItem()
         {
@@ -102,8 +110,13 @@ public class QueueManager : IDisposable
             ProgressPercentage = 0,
             CancellationTokenSource = cts
         };
+        var debounce = DebounceUtil.CreateDebounce(TimeSpan.FromMilliseconds(200));
         progressHook.ProgressChanged += (_, progress) =>
+        {
             inProgressQueueItem.ProgressPercentage = progress;
+            var message = $"{queueItem.Id}|{progress}";
+            debounce(() => _websocketManager.SendMessage(WebsocketTopic.QueueItemProgress, message));
+        };
         return inProgressQueueItem;
     }
 

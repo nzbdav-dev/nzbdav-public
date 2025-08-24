@@ -31,19 +31,8 @@ public class GetQueueController(
             .Select((queueItem, index) =>
             {
                 var percentage = (queueItem == inProgressQueueItem ? progressPercentage : 0)!.Value;
-                return new GetQueueResponse.QueueSlot
-                {
-                    Index = index,
-                    NzoId = queueItem!.Id.ToString(),
-                    Priority = queueItem.Priority.ToString(),
-                    Filename = queueItem.FileName,
-                    Category = queueItem.Category,
-                    Percentage = percentage.ToString()!,
-                    Status = queueItem == inProgressQueueItem ? "Downloading" : "Queued",
-                    TimeLeft = TimeSpan.Zero,
-                    SizeInMB = FormatSizeMB(queueItem.TotalSegmentBytes),
-                    SizeLeftInMB = FormatSizeMB((100 - percentage) * queueItem.TotalSegmentBytes / 100),
-                };
+                var status = queueItem == inProgressQueueItem ? "Downloading" : "Queued";
+                return GetQueueResponse.QueueSlot.FromQueueItem(queueItem!, index, percentage, status);
             })
             .ToList();
 
@@ -56,12 +45,6 @@ public class GetQueueController(
                 Slots = slots,
             }
         };
-    }
-
-    private static string FormatSizeMB(long bytes)
-    {
-        var megabytes = bytes / (1024.0 * 1024.0);
-        return megabytes.ToString("0.00");
     }
 
     protected override async Task<IActionResult> Handle()

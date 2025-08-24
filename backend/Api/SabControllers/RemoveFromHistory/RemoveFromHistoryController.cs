@@ -5,13 +5,15 @@ using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.Extensions;
+using NzbWebDAV.Websocket;
 
 namespace NzbWebDAV.Api.SabControllers.RemoveFromHistory;
 
 public class RemoveFromHistoryController(
     HttpContext httpContext,
     DavDatabaseClient dbClient,
-    ConfigManager configManager
+    ConfigManager configManager,
+    WebsocketManager websocketManager
 ) : SabApiController.BaseController(httpContext, configManager)
 {
     public async Task<RemoveFromHistoryResponse> RemoveFromHistory(RemoveFromHistoryRequest request)
@@ -23,6 +25,7 @@ public class RemoveFromHistoryController(
         dbClient.Ctx.HistoryItems.Remove(historyItem);
         await dbClient.Ctx.SaveChangesAsync(request.CancellationToken);
         await transaction.CommitAsync(request.CancellationToken);
+        _ = websocketManager.SendMessage(WebsocketTopic.HistoryItemRemoved, request.NzoId);
         return new RemoveFromHistoryResponse() { Status = true };
     }
 

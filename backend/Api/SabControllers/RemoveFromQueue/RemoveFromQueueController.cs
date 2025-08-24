@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Queue;
+using NzbWebDAV.Websocket;
 
 namespace NzbWebDAV.Api.SabControllers.RemoveFromQueue;
 
@@ -10,12 +11,14 @@ public class RemoveFromQueueController(
     HttpContext httpContext,
     DavDatabaseClient dbClient,
     QueueManager queueManager,
-    ConfigManager configManager
+    ConfigManager configManager,
+    WebsocketManager websocketManager
 ) : SabApiController.BaseController(httpContext, configManager)
 {
     public async Task<RemoveFromQueueResponse> RemoveFromQueue(RemoveFromQueueRequest request)
     {
         await queueManager.RemoveQueueItemAsync(request.NzoId, dbClient);
+        _ = websocketManager.SendMessage(WebsocketTopic.QueueItemRemoved, request.NzoId);
         return new RemoveFromQueueResponse() { Status = true };
     }
 

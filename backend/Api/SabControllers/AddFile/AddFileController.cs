@@ -1,10 +1,13 @@
 ﻿using System.Text;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using NzbWebDAV.Api.SabControllers.GetQueue;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
+using NzbWebDAV.Exceptions;
 using NzbWebDAV.Queue;
+using NzbWebDAV.Websocket;
 using Usenet.Nzb;
 
 namespace NzbWebDAV.Api.SabControllers.AddFile;
@@ -13,7 +16,8 @@ public class AddFileController(
     HttpContext httpContext,
     DavDatabaseClient dbClient,
     QueueManager queueManager,
-    ConfigManager configManager
+    ConfigManager configManager,
+    WebsocketManager websocketManager
 ) : SabApiController.BaseController(httpContext, configManager)
 {
     public async Task<AddFileResponse> AddFileAsync(AddFileRequest request)
@@ -40,6 +44,8 @@ public class AddFileController(
         };
         dbClient.Ctx.QueueItems.Add(queueItem);
         await dbClient.Ctx.SaveChangesAsync(request.CancellationToken);
+        var message = GetQueueResponse.QueueSlot.FromQueueItem(queueItem).ToJson();
+        _ = websocketManager.SendMessage(WebsocketTopic.QueueItemAdded, message);
 
         // return response
         return new AddFileResponse()

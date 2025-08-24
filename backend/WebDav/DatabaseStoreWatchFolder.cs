@@ -10,6 +10,7 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.Queue;
 using NzbWebDAV.WebDav.Requests;
+using NzbWebDAV.Websocket;
 
 namespace NzbWebDAV.WebDav;
 
@@ -19,8 +20,17 @@ public class DatabaseStoreWatchFolder(
     DavDatabaseClient dbClient,
     ConfigManager configManager,
     UsenetStreamingClient usenetClient,
-    QueueManager queueManager
-) : DatabaseStoreCollection(davDirectory, httpContext, dbClient, configManager, usenetClient, queueManager)
+    QueueManager queueManager,
+    WebsocketManager websocketManager
+) : DatabaseStoreCollection(
+    davDirectory,
+    httpContext,
+    dbClient,
+    configManager,
+    usenetClient,
+    queueManager,
+    websocketManager
+)
 {
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {
@@ -41,7 +51,7 @@ public class DatabaseStoreWatchFolder(
 
     protected override async Task<StoreItemResult> CreateItemAsync(CreateItemRequest request)
     {
-        var controller = new AddFileController(null!, dbClient, queueManager, configManager);
+        var controller = new AddFileController(null!, dbClient, queueManager, configManager, websocketManager);
         using var streamReader = new StreamReader(request.Stream);
         var nzbFileContents = await streamReader.ReadToEndAsync(request.CancellationToken);
         var addFileRequest = new AddFileRequest()
@@ -65,7 +75,7 @@ public class DatabaseStoreWatchFolder(
 
     protected override async Task<DavStatusCode> DeleteItemAsync(DeleteItemRequest request)
     {
-        var controller = new RemoveFromQueueController(null!, dbClient, queueManager, configManager);
+        var controller = new RemoveFromQueueController(null!, dbClient, queueManager, configManager, websocketManager);
 
         // get the item to delete
         var item = await dbClient.Ctx.QueueItems

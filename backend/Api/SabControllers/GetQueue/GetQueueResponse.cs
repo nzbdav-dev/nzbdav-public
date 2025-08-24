@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using NzbWebDAV.Database.Models;
 
 namespace NzbWebDAV.Api.SabControllers.GetQueue;
 
@@ -49,6 +50,35 @@ public class GetQueueResponse : SabBaseResponse
 
         [JsonPropertyName("mbleft")]
         public string SizeLeftInMB { get; init; }
+
+        public static QueueSlot FromQueueItem
+        (
+            QueueItem queueItem,
+            int index = 0,
+            int progressPercentage = 0,
+            string status = "Queued"
+        )
+        {
+            return new QueueSlot
+            {
+                Index = index,
+                NzoId = queueItem!.Id.ToString(),
+                Priority = queueItem.Priority.ToString(),
+                Filename = queueItem.FileName,
+                Category = queueItem.Category,
+                Percentage = progressPercentage.ToString()!,
+                Status = status,
+                TimeLeft = TimeSpan.Zero,
+                SizeInMB = FormatSizeMB(queueItem.TotalSegmentBytes),
+                SizeLeftInMB = FormatSizeMB((100 - progressPercentage) * queueItem.TotalSegmentBytes / 100),
+            };
+        }
+
+        private static string FormatSizeMB(long bytes)
+        {
+            var megabytes = bytes / (1024.0 * 1024.0);
+            return megabytes.ToString("0.00");
+        }
     }
 
     public class SabnzbdQueueTimeConverter : JsonConverter<TimeSpan>

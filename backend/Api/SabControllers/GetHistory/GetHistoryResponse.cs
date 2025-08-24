@@ -43,5 +43,27 @@ public class GetHistoryResponse : SabBaseResponse
 
         [JsonPropertyName("fail_message")]
         public string FailMessage { get; set; }
+
+        public static HistorySlot FromHistoryItem(HistoryItem historyItem, string mountDir)
+        {
+            return new HistorySlot()
+            {
+                NzoId = historyItem.Id.ToString(),
+                NzbName = historyItem.FileName,
+                JobName = historyItem.JobName,
+                Category = historyItem.Category,
+                Status = historyItem.DownloadStatus,
+                SizeInBytes = historyItem.TotalSegmentBytes,
+                DownloadPath = Path.Join(new[]
+                {
+                    mountDir,
+                    DavItem.SymlinkFolder.Name,
+                    historyItem.Category,
+                    historyItem.JobName
+                }),
+                DownloadTimeSeconds = historyItem.DownloadTimeSeconds,
+                FailMessage = historyItem.FailMessage ?? "",
+            };
+        }
     }
 }

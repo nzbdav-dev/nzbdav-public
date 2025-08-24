@@ -25,24 +25,7 @@ public class GetHistoryController(
 
         // get slots
         var slots = historyItems
-            .Select(historyItem => new GetHistoryResponse.HistorySlot()
-            {
-                NzoId = historyItem.Id.ToString(),
-                NzbName = historyItem.FileName,
-                JobName = historyItem.JobName,
-                Category = historyItem.Category,
-                Status = historyItem.DownloadStatus,
-                SizeInBytes = historyItem.TotalSegmentBytes,
-                DownloadPath = Path.Join(new[]
-                {
-                    configManager.GetRcloneMountDir(),
-                    DavItem.SymlinkFolder.Name,
-                    historyItem.Category,
-                    historyItem.JobName
-                }),
-                DownloadTimeSeconds = historyItem.DownloadTimeSeconds,
-                FailMessage = historyItem.FailMessage ?? "",
-            })
+            .Select(x => GetHistoryResponse.HistorySlot.FromHistoryItem(x, configManager.GetRcloneMountDir()))
             .ToList();
 
         // return response

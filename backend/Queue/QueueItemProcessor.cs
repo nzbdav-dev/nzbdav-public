@@ -1,14 +1,17 @@
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using NzbWebDAV.Api.SabControllers.GetHistory;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
+using NzbWebDAV.Exceptions;
 using NzbWebDAV.Extensions;
 using NzbWebDAV.Queue.FileAggregators;
 using NzbWebDAV.Queue.FileProcessors;
 using NzbWebDAV.Queue.Validators;
 using NzbWebDAV.Utils;
+using NzbWebDAV.Websocket;
 using Serilog;
 using Usenet.Nzb;
 
@@ -19,6 +22,7 @@ public class QueueItemProcessor(
     DavDatabaseClient dbClient,
     UsenetStreamingClient usenetClient,
     ConfigManager configManager,
+    WebsocketManager websocketManager,
     IProgress<int> progress,
     CancellationToken ct
 )
@@ -27,6 +31,7 @@ public class QueueItemProcessor(
     {
         // initialize
         var startTime = DateTime.Now;
+        _ = websocketManager.SendMessage(WebsocketTopic.QueueItemStatus, $"{queueItem.Id}|Downloading");
 
         // process the job
         try
@@ -63,6 +68,7 @@ public class QueueItemProcessor(
                 dbClient.Ctx.QueueItems.Attach(queueItem);
                 dbClient.Ctx.Entry(queueItem).Property(x => x.PauseUntil).IsModified = true;
                 await dbClient.Ctx.SaveChangesAsync();
+                _ = websocketManager.SendMessage(WebsocketTopic.QueueItemStatus, $"{queueItem.Id}|Queued");
             }
             catch (Exception ex)
             {
@@ -211,8 +217,13 @@ public class QueueItemProcessor(
     {
         dbClient.Ctx.ChangeTracker.Clear();
         var mountFolder = databaseOperations?.Invoke();
+        var mountDirectory = configManager.GetRcloneMountDir();
+        var historyItem = CreateHistoryItem(mountFolder, startTime, error);
+        var historySlot = GetHistoryResponse.HistorySlot.FromHistoryItem(historyItem, mountDirectory);
         dbClient.Ctx.QueueItems.Remove(queueItem);
-        dbClient.Ctx.HistoryItems.Add(CreateHistoryItem(mountFolder, startTime, error));
+        dbClient.Ctx.HistoryItems.Add(historyItem);
         await dbClient.Ctx.SaveChangesAsync(ct);
+        _ = websocketManager.SendMessage(WebsocketTopic.QueueItemRemoved, queueItem.Id.ToString());
+        _ = websocketManager.SendMessage(WebsocketTopic.HistoryItemAdded, historySlot.ToJson());
     }
 }

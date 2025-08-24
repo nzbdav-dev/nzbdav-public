@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using NzbWebDAV.Exceptions;
 using NzbWebDAV.Utils;
 using Serilog;
 
@@ -10,7 +11,7 @@ namespace NzbWebDAV.Websocket;
 public class WebsocketManager
 {
     private readonly HashSet<WebSocket> _authenticatedSockets = [];
-    private readonly Dictionary<string, string> _lastMessage = new();
+    private readonly Dictionary<WebsocketTopic, string> _lastMessage = new();
 
     public async Task HandleRoute(HttpContext context)
     {
@@ -29,10 +30,11 @@ public class WebsocketManager
                 _authenticatedSockets.Add(webSocket);
 
             // send current state for all topics
-            List<KeyValuePair<string, string>>? lastMessage = null;
+            List<KeyValuePair<WebsocketTopic, string>>? lastMessage;
             lock (_lastMessage) lastMessage = _lastMessage.ToList();
             foreach (var message in lastMessage)
-                await SendMessage(webSocket, message.Key, message.Value);
+                if (message.Key.Type == WebsocketTopic.TopicType.State)
+                    await SendMessage(webSocket, message.Key, message.Value);
 
             // wait for the socket to disconnect
             await WaitForDisconnected(webSocket);
@@ -50,13 +52,13 @@ public class WebsocketManager
     /// </summary>
     /// <param name="topic">The topic of the message to send</param>
     /// <param name="message">The message to send</param>
-    public Task SendMessage(string topic, string message)
+    public Task SendMessage(WebsocketTopic topic, string message)
     {
         lock (_lastMessage) _lastMessage[topic] = message;
         List<WebSocket>? authenticatedSockets;
         lock (_authenticatedSockets) authenticatedSockets = _authenticatedSockets.ToList();
         var topicMessage = new TopicMessage(topic, message);
-        var bytes = new ArraySegment<byte>(Encoding.UTF8.GetBytes(topicMessage.ToString()));
+        var bytes = new ArraySegment<byte>(Encoding.UTF8.GetBytes(topicMessage.ToJson()));
         return Task.WhenAll(authenticatedSockets.Select(x => SendMessage(x, bytes)));
     }
 
@@ -91,10 +93,10 @@ public class WebsocketManager
     /// <param name="socket">The websocket to send the message to.</param>
     /// <param name="topic">The topic of the message to send</param>
     /// <param name="message">The message to send</param>
-    private static async Task SendMessage(WebSocket socket, string topic, string message)
+    private static async Task SendMessage(WebSocket socket, WebsocketTopic topic, string message)
     {
         var topicMessage = new TopicMessage(topic, message);
-        var bytes = new ArraySegment<byte>(Encoding.UTF8.GetBytes(topicMessage.ToString()));
+        var bytes = new ArraySegment<byte>(Encoding.UTF8.GetBytes(topicMessage.ToJson()));
         await SendMessage(socket, bytes);
     }
 
@@ -149,10 +151,9 @@ public class WebsocketManager
             await socket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "Unauthorized", CancellationToken.None);
     }
 
-    private sealed class TopicMessage(string topic, string message)
+    private sealed class TopicMessage(WebsocketTopic topic, string message)
     {
-        public string Topic { get; } = topic;
+        public string Topic { get; } = topic.Name;
         public string Message { get; } = message;
-        public override string ToString() => JsonSerializer.Serialize(this);
     }
 }
