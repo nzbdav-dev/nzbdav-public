@@ -33,7 +33,9 @@ export function StatusBadge({ status, percentage, error }: StatusBadgeProps) {
 
     return (
         <OverlayTrigger placement="top" overlay={overlay} trigger="click">
-            <Badge className={badgeClass} color={color} percentNum={percentNum}>{badgeText}</Badge>
+            <div style={{ display: 'inline-block' }}>
+                <Badge className={badgeClass} color={color} percentNum={percentNum}>{badgeText}</Badge>
+            </div>
         </OverlayTrigger>
     );
 }
