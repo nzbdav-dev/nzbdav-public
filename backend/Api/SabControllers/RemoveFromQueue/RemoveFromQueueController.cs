@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Queue;
@@ -14,10 +15,39 @@ public class RemoveFromQueueController(
 ) : SabApiController.BaseController(httpContext, configManager)
 {
     public async Task<RemoveFromQueueResponse> RemoveFromQueue(RemoveFromQueueRequest request)
+{
+    // Accept SAB style: value=id1,id2,... (existing request.NzoId already holds "value")
+    var raw = request.NzoId ?? string.Empty;
+    var idStrings = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    // Parse to GUIDs (ignore invalid entries silently)
+    var ids = idStrings
+        .Select(s => Guid.TryParse(s, out var g) ? g : (Guid?)null)
+        .Where(g => g.HasValue)
+        .Select(g => g!.Value)
+        .ToList();
+
+    if (ids.Count == 0)
+        return new RemoveFromQueueResponse() { Status = true }; // nothing to do, stay success for SAB parity
+
+    await using var tx = await dbClient.Ctx.Database.BeginTransactionAsync(HttpContext.RequestAborted);
+
+    // Single round-trip: load then remove in bulk
+    var items = await dbClient.Ctx.QueueItems
+        .Where(q => ids.Contains(q.Id))
+        .ToListAsync(HttpContext.RequestAborted);
+
+    if (items.Count > 0)
     {
-        await queueManager.RemoveQueueItemAsync(request.NzoId, dbClient);
-        return new RemoveFromQueueResponse() { Status = true };
+        dbClient.Ctx.QueueItems.RemoveRange(items);
+        await dbClient.Ctx.SaveChangesAsync(HttpContext.RequestAborted);
     }
+
+    await tx.CommitAsync(HttpContext.RequestAborted);
+
+    return new RemoveFromQueueResponse() { Status = true };
+}
+
 
     protected override async Task<IActionResult> Handle()
     {
