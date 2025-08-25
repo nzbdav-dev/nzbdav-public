@@ -222,6 +222,23 @@ class BackendClient {
         return await response.json();
     }
 
+    // NEW: bulk remove — send all IDs in one call
+    public async removeFromQueueBulk(nzoIds: string[]): Promise<{ removed: number; ids: string[] }>
+    {
+        const url = process.env.BACKEND_URL + '/api?mode=queue&name=delete';
+        const apiKey = process.env.FRONTEND_BACKEND_API_KEY || "";
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'x-api-key': apiKey,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nzoIds })
+        });
+        if (!response.ok) throw new Error(`Bulk remove failed: ${response.status}`);
+        return await response.json();
+    }
+
     public async removeFromHistory(nzo_id: string, del_completed_files: boolean): Promise<any> {
         let url = process.env.BACKEND_URL
             + '/api?mode=history&name=delete'
