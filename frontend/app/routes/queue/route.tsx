@@ -7,7 +7,7 @@ import { backendClient, type HistoryResponse, type QueueResponse } from "~/clien
 import { EmptyQueue } from "./components/empty-queue/empty-queue";
 import { HistoryTable } from "./components/history-table/history-table";
 import { QueueTable } from "./components/queue-table/queue-table";
-import { Form, useLoaderData, useNavigation } from "react-router";
+import { Form } from "react-router";
 import { Button, ButtonGroup } from "react-bootstrap";
 
 
