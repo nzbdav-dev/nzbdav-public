@@ -130,7 +130,37 @@ export async function action({ request }: Route.ActionArgs) {
 
                 // Redirect back to queue so loader refreshes the list
                 return redirect("/queue");
+        const formData = await request.formData();
+        const intent = formData.get("__intent");
+        const clear = (formData.get("clear") || "").toString().toLowerCase();
+
+        if (intent === "bulk-clear" && (clear === "all" || clear === "tv" || clear === "movies")) {
+            // get the current queue
+            const queue = await backendClient.getQueue(); // returns { slots: QueueSlot[] } or similar
+
+            // defensive checks
+            const slots = Array.isArray(queue?.slots) ? queue.slots : [];
+
+            // Filter by category if needed
+            const wanted = clear === "all"
+                ? slots
+                : slots.filter(s => (s?.cat || "").toString().toLowerCase() === (clear === "tv" ? "tv" : "movies"));
+
+            // Remove each item by its nzo_id (single-item API, loop here to avoid new backend endpoints)
+            for (const s of wanted) {
+                const id = s?.nzo_id || s?.nzoId || s?.id; // support slight shape differences
+                if (id) {
+                    try {
+                        await backendClient.removeFromQueue(id);
+                    } catch (err) {
+                        // Swallow per-item errors so one failure doesn't block the whole clear op
+                        console.error("removeFromQueue failed for", id, err);
+                    }
+                }
             }
+
+            // Redirect back to queue so loader refreshes the list
+            return redirect("/queue");
         }
         // ---- end bulk-clear ----
 
