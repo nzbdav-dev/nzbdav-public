@@ -123,7 +123,10 @@ export async function action({ request }: Route.ActionArgs) {
                             await backendClient.removeFromQueue(id);
                         } catch (err) {
                             // Swallow per-item errors so one failure doesn't block the whole clear op
-                            console.error("removeFromQueue failed for", id, err);
+                            console.error(
+                                `removeFromQueue failed for id=${id}, category=${s?.cat || "unknown"}, name=${s?.name || s?.title || "unknown"}`,
+                                err
+                            );
                         }
                     }
                 }
