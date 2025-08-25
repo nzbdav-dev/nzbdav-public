@@ -49,31 +49,31 @@ function Body({ loaderData, actionData }: BodyProps) {
                             {actionData?.error}
                         </Alert>
                     }
-                                        {/* Bulk-clear controls */}
-                                        <Form method="post" className="mb-3" onSubmit={(e) => {
-                                            const target = e.nativeEvent.submitter as HTMLButtonElement | null;
-                                            const action = target?.value ?? "";
-                                            const label = action === "all" ? "all items"
-                                                                    : action === "tv" ? "all TV items"
-                                                                    : action === "movies" ? "all Movies items"
-                                                                    : "items";
-                                            if (!window.confirm(`Are you sure you want to clear ${label} from the queue?`)) {
-                                                e.preventDefault();
-                                            }
-                                        }}>
-                                            <input type="hidden" name="__intent" value="bulk-clear" />
-                                            <ButtonGroup>
-                                                <Button variant="outline-danger" type="submit" name="clear" value="all">
-                                                    Clear All
-                                                </Button>
-                                                <Button variant="outline-warning" type="submit" name="clear" value="tv">
-                                                    Clear TV
-                                                </Button>
-                                                <Button variant="outline-primary" type="submit" name="clear" value="movies">
-                                                    Clear Movies
-                                                </Button>
-                                            </ButtonGroup>
-                                        </Form>
+                    {/* Bulk-clear controls */}
+                    <Form method="post" className="mb-3" onSubmit={(e) => {
+                        const target = e.nativeEvent.submitter as HTMLButtonElement | null;
+                        const action = target?.value ?? "";
+                        const label = action === "all" ? "all items"
+                                                : action === "tv" ? "all TV items"
+                                                : action === "movies" ? "all Movies items"
+                                                : "items";
+                        if (!window.confirm(`Are you sure you want to clear ${label} from the queue?`)) {
+                            e.preventDefault();
+                        }
+                    }}>
+                        <input type="hidden" name="__intent" value="bulk-clear" />
+                        <ButtonGroup>
+                            <Button variant="outline-danger" type="submit" name="clear" value="all">
+                                Clear All
+                            </Button>
+                            <Button variant="outline-warning" type="submit" name="clear" value="tv">
+                                Clear TV
+                            </Button>
+                            <Button variant="outline-primary" type="submit" name="clear" value="movies">
+                                Clear Movies
+                            </Button>
+                        </ButtonGroup>
+                    </Form>
                     {queue.slots.length > 0 ? <QueueTable queue={queue} /> : <EmptyQueue />}
                 </div>
             </div>
@@ -97,15 +97,17 @@ export async function action({ request }: Route.ActionArgs) {
     let user = session.get("user");
     if (!user) return redirect("/login");
 
-        // ---- Bulk-clear queue (Clear All / Clear TV / Clear Movies) ----
-        {
-            const formData = await request.formData();
-            const intent = formData.get("__intent");
-            const clear = (formData.get("clear") || "").toString().toLowerCase();
+    const formData = await request.formData();
+    const intent = formData.get("__intent");
 
-            if (intent === "bulk-clear" && (clear === "all" || clear === "tv" || clear === "movies")) {
+    // ---- Bulk-clear queue (Clear All / Clear TV / Clear Movies) ----
+    if (intent === "bulk-clear") {
+        const clear = (formData.get("clear") || "").toString().toLowerCase();
+
+        if (clear === "all" || clear === "tv" || clear === "movies") {
+            try {
                 // get the current queue
-                const queue = await backendClient.getQueue(); // returns { slots: QueueSlot[] } or similar
+                const queue = await backendClient.getQueue();
 
                 // defensive checks
                 const slots = Array.isArray(queue?.slots) ? queue.slots : [];
@@ -117,68 +119,38 @@ export async function action({ request }: Route.ActionArgs) {
 
                 // Remove each item by its nzo_id (single-item API, loop here to avoid new backend endpoints)
                 for (const s of wanted) {
-                    const id = s.nzo_id;
+                    const id = s?.nzo_id || s?.nzoId || s?.id; // support slight shape differences
                     if (id) {
                         try {
                             await backendClient.removeFromQueue(id);
                         } catch (err) {
                             // Swallow per-item errors so one failure doesn't block the whole clear op
-                            console.error(
-                                `removeFromQueue failed for id=${id}, category=${s?.cat || "unknown"}, name=${s?.name || s?.title || "unknown"}`,
-                                err
-                            );
+                            console.error("removeFromQueue failed for", id, err);
                         }
                     }
                 }
 
                 // Redirect back to queue so loader refreshes the list
                 return redirect("/queue");
-        const formData = await request.formData();
-        const intent = formData.get("__intent");
-        const clear = (formData.get("clear") || "").toString().toLowerCase();
-
-        if (intent === "bulk-clear" && (clear === "all" || clear === "tv" || clear === "movies")) {
-            // get the current queue
-            const queue = await backendClient.getQueue(); // returns { slots: QueueSlot[] } or similar
-
-            // defensive checks
-            const slots = Array.isArray(queue?.slots) ? queue.slots : [];
-
-            // Filter by category if needed
-            const wanted = clear === "all"
-                ? slots
-                : slots.filter(s => (s?.cat || "").toString().toLowerCase() === (clear === "tv" ? "tv" : "movies"));
-
-            // Remove each item by its nzo_id (single-item API, loop here to avoid new backend endpoints)
-            for (const s of wanted) {
-                const id = s?.nzo_id || s?.nzoId || s?.id; // support slight shape differences
-                if (id) {
-                    try {
-                        await backendClient.removeFromQueue(id);
-                    } catch (err) {
-                        // Swallow per-item errors so one failure doesn't block the whole clear op
-                        console.error("removeFromQueue failed for", id, err);
-                    }
-                }
+            } catch (error) {
+                return { error: "Error clearing queue items." };
             }
+        }
+    }
 
-            // Redirect back to queue so loader refreshes the list
+    // ---- Handle NZB file upload ----
+    try {
+        const nzbFile = formData.get("nzbFile");
+        if (nzbFile instanceof File) {
+            await backendClient.addNzb(nzbFile);
             return redirect("/queue");
+        } else {
+            return { error: "Error uploading nzb." };
         }
-        // ---- end bulk-clear ----
-
-        try {
-                const formData = await request.formData();
-                const nzbFile = formData.get("nzbFile");
-                if (nzbFile instanceof File) {
-                        await backendClient.addNzb(nzbFile);
-                } else {
-                        return { error: "Error uploading nzb." }
-                }
-        } catch (error) {
-                if (error instanceof Error) {
-                        return { error: error.message };
-                }
-                throw error;
+    } catch (error) {
+        if (error instanceof Error) {
+            return { error: error.message };
         }
+        throw error;
+    }
 }
