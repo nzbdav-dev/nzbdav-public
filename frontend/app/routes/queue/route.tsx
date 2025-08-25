@@ -117,7 +117,7 @@ export async function action({ request }: Route.ActionArgs) {
 
                 // Remove each item by its nzo_id (single-item API, loop here to avoid new backend endpoints)
                 for (const s of wanted) {
-                    const id = s?.nzo_id || s?.nzoId || s?.id; // support slight shape differences
+                    const id = s.nzo_id;
                     if (id) {
                         try {
                             await backendClient.removeFromQueue(id);
