@@ -117,18 +117,19 @@ export async function action({ request }: Route.ActionArgs) {
                     ? slots
                     : slots.filter(s => (s?.cat || "").toString().toLowerCase() === (clear === "tv" ? "tv" : "movies"));
 
-                // Remove each item by its nzo_id (single-item API, loop here to avoid new backend endpoints)
-                for (const s of wanted) {
-                    const id = s?.nzo_id || s?.nzoId || s?.id; // support slight shape differences
-                    if (id) {
-                        try {
-                            await backendClient.removeFromQueue(id);
-                        } catch (err) {
-                            // Swallow per-item errors so one failure doesn't block the whole clear op
-                            console.error("removeFromQueue failed for", id, err);
-                        }
-                    }
-                }
+                                // Collect wanted IDs once
+                                                const nzoIds = wanted
+                                                    .map(s => s?.nzo_id ?? (s as any)?.nzoId ?? (s as any)?.id)
+                                                    .filter(Boolean) as string[];
+
+                                                if (nzoIds.length === 0) return redirect("/queue");
+
+                                // Single round-trip to backend; backend does one DB transaction
+                                try {
+                                    await backendClient.removeFromQueueBulk(nzoIds);
+                                } catch (err) {
+                                    console.error("bulk removeFromQueue failed", err);
+                                }
 
                 // Redirect back to queue so loader refreshes the list
                 return redirect("/queue");
