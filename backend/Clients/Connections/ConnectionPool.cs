@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
 namespace NzbWebDAV.Clients.Connections;
@@ -48,7 +48,7 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
 
         _factory = connectionFactory
                    ?? throw new ArgumentNullException(nameof(connectionFactory));
-        IdleTimeout = idleTimeout ?? TimeSpan.FromMinutes(1);
+        IdleTimeout = idleTimeout ?? TimeSpan.FromSeconds(30);
 
         _maxConnections = maxConnections;
         _gate = new SemaphoreSlim(maxConnections, maxConnections);
@@ -106,7 +106,7 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
         return BuildLock(conn);
 
         ConnectionLock<T> BuildLock(T c)
-            => new ConnectionLock<T>(c, Return, ReturnAsync);
+            => new ConnectionLock<T>(c, Return, ReturnAsync, Destroy, DestroyAsync);
 
         static void ThrowDisposed()
             => throw new ObjectDisposedException(nameof(ConnectionPool<T>));
@@ -142,6 +142,30 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
     private ValueTask ReturnAsync(T connection)
     {
         Return(connection);
+        return ValueTask.CompletedTask;
+    }
+
+    private void Destroy(T connection)
+    {
+        // When a lock requests replacement, we dispose the connection instead of reusing.
+        _ = DisposeConnectionAsync(connection); // fire & forget
+        Interlocked.Decrement(ref _live);
+        if (Volatile.Read(ref _disposed) == 0)
+        {
+            _gate.Release();
+        }
+        TriggerConnectionPoolChangedEvent();
+    }
+
+    private ValueTask DestroyAsync(T connection)
+    {
+        _ = DisposeConnectionAsync(connection); // fire & forget
+        Interlocked.Decrement(ref _live);
+        if (Volatile.Read(ref _disposed) == 0)
+        {
+            _gate.Release();
+        }
+        TriggerConnectionPoolChangedEvent();
         return ValueTask.CompletedTask;
     }
 
