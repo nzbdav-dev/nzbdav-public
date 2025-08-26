@@ -161,30 +161,26 @@ public class QueueItemProcessor(
             return categoryFolder;
 
         // otherwise, create it
-        categoryFolder = new DavItem()
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.Now,
-            ParentId = DavItem.ContentFolder.Id,
-            Name = queueItem.Category,
-            Type = DavItem.ItemType.Directory,
-            Path = Path.Join(DavItem.ContentFolder.Path, queueItem.Category)
-        };
+        categoryFolder = DavItem.New(
+            id: Guid.NewGuid(),
+            parent: DavItem.ContentFolder,
+            name: queueItem.Category,
+            fileSize: null,
+            type: DavItem.ItemType.Directory
+        );
         dbClient.Ctx.Items.Add(categoryFolder);
         return categoryFolder;
     }
 
     private DavItem CreateMountFolder(DavItem categoryFolder)
     {
-        var mountFolder = new DavItem()
-        {
-            Id = Guid.NewGuid(),
-            CreatedAt = DateTime.Now,
-            ParentId = categoryFolder.Id,
-            Name = queueItem.JobName,
-            Type = DavItem.ItemType.Directory,
-            Path = Path.Join(categoryFolder.Path, queueItem.JobName)
-        };
+        var mountFolder = DavItem.New(
+            id: Guid.NewGuid(),
+            parent: categoryFolder,
+            name: queueItem.JobName,
+            fileSize: null,
+            type: DavItem.ItemType.Directory
+        );
         dbClient.Ctx.Items.Add(mountFolder);
         return mountFolder;
     }

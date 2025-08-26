@@ -42,9 +42,8 @@ public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, Config
 
     public static string GetTargetPath(DavItem davFile, string mountDir)
     {
-        var pathParts = davFile.Id.ToString()
+        var pathParts = davFile.IdPrefix
             .Select(x => x.ToString())
-            .Take(DatabaseStoreIdsCollection.FanningDepth)
             .Prepend(DavItem.IdsFolder.Name)
             .Prepend(mountDir)
             .Append(davFile.Id.ToString())

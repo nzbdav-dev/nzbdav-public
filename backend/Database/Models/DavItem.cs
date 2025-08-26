@@ -4,13 +4,38 @@ namespace NzbWebDAV.Database.Models;
 
 public class DavItem
 {
+    public const int IdPrefixLength = 5;
+
     public Guid Id { get; init; }
+    public string IdPrefix { get; init; }
     public DateTime CreatedAt { get; init; }
     public Guid? ParentId { get; init; }
     public string Name { get; init; } = null!;
     public long? FileSize { get; set; }
     public ItemType Type { get; init; }
     public string Path { get; init; } = null!;
+
+    public static DavItem New
+    (
+        Guid id,
+        DavItem parent,
+        string name,
+        long? fileSize,
+        ItemType type
+    )
+    {
+        return new DavItem()
+        {
+            Id = id,
+            IdPrefix = id.ToString()[..5],
+            CreatedAt = DateTime.Now,
+            ParentId = parent.Id,
+            Name = name,
+            FileSize = fileSize,
+            Type = type,
+            Path = System.IO.Path.Join(parent.Path, name)
+        };
+    }
 
     // Important: numerical values cannot be
     // changed without a database migration.

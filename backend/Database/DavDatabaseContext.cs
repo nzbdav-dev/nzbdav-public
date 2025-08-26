@@ -76,6 +76,9 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
             e.Property(i => i.Path)
                 .IsRequired();
 
+            e.Property(i => i.IdPrefix)
+                .IsRequired();
+
             e.HasOne(i => i.Parent)
                 .WithMany(p => p.Children)
                 .HasForeignKey(i => i.ParentId)
@@ -83,6 +86,8 @@ public sealed class DavDatabaseContext() : DbContext(Options.Value)
 
             e.HasIndex(i => new { i.ParentId, i.Name })
                 .IsUnique();
+
+            e.HasIndex(i => new { i.IdPrefix, i.Type });
         });
 
         // DavNzbFile

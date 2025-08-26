@@ -17,7 +17,7 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
     public Task<List<DavItem>> GetFilesByIdPrefix(string prefix)
     {
         return ctx.Items
-            .Where(i => EF.Functions.Like(i.Id.ToString(), $"{prefix}%"))
+            .Where(i => i.IdPrefix == prefix)
             .Where(i => i.Type == DavItem.ItemType.NzbFile || i.Type == DavItem.ItemType.RarFile)
             .ToListAsync();
     }

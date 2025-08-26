@@ -4,6 +4,7 @@ using NWebDav.Server.Stores;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
+using NzbWebDAV.Database.Models;
 using NzbWebDAV.WebDav.Base;
 using NzbWebDAV.WebDav.Requests;
 
@@ -22,7 +23,6 @@ public class DatabaseStoreIdsCollection(
     public override string UniqueKey => currentPath;
     public override DateTime CreatedAt => default;
 
-    public const int FanningDepth = 5;
     private const string Alphabet = "0123456789abcdef";
 
     private readonly string[] _currentPathParts = currentPath.Split(
@@ -39,7 +39,7 @@ public class DatabaseStoreIdsCollection(
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {
         var (dir, ctx, db, usenet, config) = (request.Name, httpContext, dbClient, usenetClient, configManager);
-        if (_currentPathParts.Length < FanningDepth)
+        if (_currentPathParts.Length < DavItem.IdPrefixLength)
         {
             if (request.Name.Length != 1) return null;
             if (!Alphabet.Contains(request.Name[0])) return null;
@@ -53,7 +53,7 @@ public class DatabaseStoreIdsCollection(
     protected override async Task<IStoreItem[]> GetAllItemsAsync(CancellationToken cancellationToken)
     {
         var (ctx, db, usenet, config) = (httpContext, dbClient, usenetClient, configManager);
-        if (_currentPathParts.Length < FanningDepth)
+        if (_currentPathParts.Length < DavItem.IdPrefixLength)
             return Alphabet
                 .Select(x => x.ToString())
                 .Select(x => new DatabaseStoreIdsCollection(x, Path.Join(currentPath, x), ctx, db, usenet, config))
