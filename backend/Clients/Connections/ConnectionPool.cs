@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using NzbWebDAV.Extensions;
 
 namespace NzbWebDAV.Clients.Connections;
 
@@ -29,7 +30,7 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
     /* --------------------------------- state --------------------------------------- */
 
     private readonly ConcurrentStack<Pooled> _idleConnections = new();
-    private readonly SemaphoreSlim _gate;
+    private readonly ExtendedSemaphoreSlim _gate;
     private readonly CancellationTokenSource _sweepCts = new();
     private readonly Task _sweeperTask; // keeps timer alive
 
@@ -51,21 +52,29 @@ public sealed class ConnectionPool<T> : IDisposable, IAsyncDisposable
         IdleTimeout = idleTimeout ?? TimeSpan.FromSeconds(30);
 
         _maxConnections = maxConnections;
-        _gate = new SemaphoreSlim(maxConnections, maxConnections);
+        _gate = new ExtendedSemaphoreSlim(maxConnections, maxConnections);
         _sweeperTask = Task.Run(SweepLoop); // background idle-reaper
     }
 
     /* ============================== public API ==================================== */
 
-    /// <summary>Borrow a connection; releases automatically with the lock.</summary>
+    /// <summary>
+    /// Borrow a connection while reserving capacity for higher-priority callers.
+    /// Waits until at least (`reservedCount` + 1) slots are free before acquiring one,
+    /// ensuring that after acquisition at least `reservedCount` remain available.
+    /// </summary>
     public async Task<ConnectionLock<T>> GetConnectionLockAsync(
         CancellationToken cancellationToken = default)
     {
+        var reservedCount = cancellationToken.GetContext<ReservedConnectionsContext>().Count;
+        if (reservedCount < 0 || reservedCount > _maxConnections)
+            reservedCount = 0;
+
         // Make caller cancellation also cancel the wait on the gate.
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, _sweepCts.Token);
 
-        await _gate.WaitAsync(linked.Token).ConfigureAwait(false);
+        await _gate.WaitAsync(reservedCount, linked.Token).ConfigureAwait(false);
 
         // Pool might have been disposed after wait returned:
         if (Volatile.Read(ref _disposed) == 1)

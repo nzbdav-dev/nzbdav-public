@@ -27,7 +27,7 @@ public class UsenetStreamingClient
         var useSsl = bool.Parse(configManager.GetConfigValue("usenet.use-ssl") ?? "false");
         var user = configManager.GetConfigValue("usenet.user") ?? string.Empty;
         var pass = configManager.GetConfigValue("usenet.pass") ?? string.Empty;
-        var connections = int.Parse(configManager.GetConfigValue("usenet.connections") ?? "10");
+        var connections = configManager.GetMaxConnections();
 
         // initialize the nntp-client
         var createNewConnection = (CancellationToken ct) => CreateNewConnection(host, port, useSsl, user, pass, ct);

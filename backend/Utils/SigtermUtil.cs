@@ -1,5 +1,4 @@
 ﻿using System.Runtime.Loader;
-using Serilog;
 
 namespace NzbWebDAV.Utils;
 

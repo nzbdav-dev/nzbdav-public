@@ -80,7 +80,7 @@ public sealed class DavDatabaseClient(DavDatabaseContext ctx)
         return Ctx.QueueItems
             .OrderByDescending(q => q.Priority)
             .ThenBy(q => q.CreatedAt)
-            .Where(q => q.PauseUntil == null || DateTime.Now >= q.PauseUntil)
+            .Where(q => q.PauseUntil == null || nowTime >= q.PauseUntil)
             .Skip(0)
             .Take(1)
             .FirstOrDefaultAsync(ct);

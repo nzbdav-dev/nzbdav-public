@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Api.SabControllers.GetHistory;
 using NzbWebDAV.Clients;
+using NzbWebDAV.Clients.Connections;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
@@ -89,6 +90,10 @@ public class QueueItemProcessor(
             await MarkQueueItemCompleted(startTime, error: null, () => existingMountFolder);
             return;
         }
+
+        // ensure we don't use more than max-queue-connections
+        var reservedConnections = configManager.GetMaxConnections() - configManager.GetMaxQueueConnections();
+        using var _ = ct.SetScopedContext(new ReservedConnectionsContext(reservedConnections));
 
         // read the nzb document
         var documentBytes = Encoding.UTF8.GetBytes(queueItem.NzbContents);

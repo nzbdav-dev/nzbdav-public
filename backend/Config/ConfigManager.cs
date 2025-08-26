@@ -69,6 +69,14 @@ public class ConfigManager
                ?? "audio,software,tv,movies";
     }
 
+    public int GetMaxConnections()
+    {
+        return int.Parse(
+            StringUtil.EmptyToNull(GetConfigValue("usenet.connections"))
+            ?? "10"
+        );
+    }
+
     public int GetConnectionsPerStream()
     {
         return int.Parse(
@@ -110,6 +118,14 @@ public class ConfigManager
     public string? GetLibraryDir()
     {
         return StringUtil.EmptyToNull(GetConfigValue("media.library-dir"));
+    }
+
+    public int GetMaxQueueConnections()
+    {
+        return int.Parse(
+            StringUtil.EmptyToNull(GetConfigValue("api.max-queue-connections"))
+            ?? GetMaxConnections().ToString()
+        );
     }
 
     public class ConfigEventArgs : EventArgs
