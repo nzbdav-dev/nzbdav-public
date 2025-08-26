@@ -153,7 +153,7 @@ export function isUsenetSettingsUpdated(config: Record<string, string>, newConfi
         || config["usenet.connections-per-stream"] !== newConfig["usenet.connections-per-stream"]
 }
 
-function isPositiveInteger(value: string) {
+export function isPositiveInteger(value: string) {
     const num = Number(value);
     return Number.isInteger(num) && num > 0 && value.trim() === num.toString();
 }

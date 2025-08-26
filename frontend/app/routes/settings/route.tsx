@@ -12,6 +12,7 @@ import { Maintenance } from "./maintenance/maintenance";
 const defaultConfig = {
     "api.key": "",
     "api.categories": "",
+    "api.max-queue-connections": "",
     "api.ensure-importable-video": "true",
     "usenet.host": "",
     "usenet.port": "",
