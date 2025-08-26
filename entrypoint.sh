@@ -56,8 +56,8 @@ BACKEND_PID=$!
 
 # Wait for backend health check
 echo "Waiting for backend to start."
-MAX_RETRIES=30
-RETRY_DELAY=1
+MAX_BACKEND_HEALTH_RETRIES=${MAX_BACKEND_HEALTH_RETRIES:-30}
+MAX_BACKEND_HEALTH_RETRY_DELAY=${MAX_BACKEND_HEALTH_RETRY_DELAY:-1}
 i=0
 while true; do
     echo "Checking backend health: $BACKEND_URL/health ..."
@@ -67,14 +67,14 @@ while true; do
     fi
 
     i=$((i+1))
-    if [ "$i" -ge "$MAX_RETRIES" ]; then
-        echo "Backend failed health check after $MAX_RETRIES retries. Exiting."
+    if [ "$i" -ge "$MAX_BACKEND_HEALTH_RETRIES" ]; then
+        echo "Backend failed health check after $MAX_BACKEND_HEALTH_RETRIES retries. Exiting."
         kill $BACKEND_PID
         wait $BACKEND_PID
         exit 1
     fi
 
-    sleep "$RETRY_DELAY"
+    sleep "$MAX_BACKEND_HEALTH_RETRY_DELAY"
 done
 
 # Run frontend as appuser in background
