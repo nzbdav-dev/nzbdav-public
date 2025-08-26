@@ -27,7 +27,8 @@ public class QueueManager : IDisposable
         _usenetClient = usenetClient;
         _configManager = configManager;
         _websocketManager = websocketManager;
-        _cancellationTokenSource = new CancellationTokenSource();
+        _cancellationTokenSource = CancellationTokenSource
+            .CreateLinkedTokenSource(SigtermUtil.GetCancellationToken());
         _ = ProcessQueueAsync(_cancellationTokenSource.Token);
     }
 

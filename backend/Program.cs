@@ -29,7 +29,7 @@ class Program
     static async Task Main(string[] args)
     {
         // Initialize logger
-        var defaultLevel = LogEventLevel.Information;
+        var defaultLevel = LogEventLevel.Warning;
         var envLevel = Environment.GetEnvironmentVariable("LOG_LEVEL");
         var level = Enum.TryParse<LogEventLevel>(envLevel, true, out var parsed) ? parsed : defaultLevel;
         Log.Logger = new LoggerConfiguration()
@@ -42,8 +42,14 @@ class Program
             .CreateLogger();
 
         // initialize database
-        var databaseContext = new DavDatabaseContext();
-        await databaseContext.Database.MigrateAsync();
+        await using var databaseContext = new DavDatabaseContext();
+
+        // run database migration, if necessary.
+        if (args.Contains("--db-migration"))
+        {
+            await databaseContext.Database.MigrateAsync(SigtermUtil.GetCancellationToken());
+            return;
+        }
 
         // initialize the config-manager
         var configManager = new ConfigManager();

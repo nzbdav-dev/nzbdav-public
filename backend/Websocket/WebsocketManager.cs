@@ -1,6 +1,5 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NzbWebDAV.Exceptions;
 using NzbWebDAV.Utils;
@@ -80,11 +79,18 @@ public class WebsocketManager
     /// <param name="socket">The websocket to wait for disconnect.</param>
     private static async Task WaitForDisconnected(WebSocket socket)
     {
-        var buffer = new byte[1024];
-        WebSocketReceiveResult? result = null;
-        while (result is not { CloseStatus: not null })
-            result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), default);
-        await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, default);
+        try
+        {
+            var buffer = new byte[1024];
+            WebSocketReceiveResult? result = null;
+            while (result is not { CloseStatus: not null })
+                result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), default);
+            await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, default);
+        }
+        catch (Exception e)
+        {
+            Log.Warning(e.Message);
+        }
     }
 
     /// <summary>

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
-using NzbWebDAV.Database.Models;
 
 namespace NzbWebDAV.Api.SabControllers.GetHistory;
 

@@ -23,6 +23,21 @@ wait_either() {
     done
 }
 
+# Signal handling for graceful shutdown
+terminate() {
+    echo "Caught termination signal. Shutting down..."
+    if [ -n "$BACKEND_PID" ] && kill -0 "$BACKEND_PID" 2>/dev/null; then
+        kill "$BACKEND_PID"
+    fi
+    if [ -n "$FRONTEND_PID" ] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
+        kill "$FRONTEND_PID"
+    fi
+    # Wait for children to exit
+    wait
+    exit 0
+}
+trap terminate TERM INT
+
 # Use env vars or default to 1000
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
@@ -46,11 +61,20 @@ if [ -z "${FRONTEND_BACKEND_API_KEY}" ]; then
     export FRONTEND_BACKEND_API_KEY=$(head -c 32 /dev/urandom | hexdump -ve '1/1 "%.2x"')
 fi
 
-# Change permissions on /config directory to the given PUID and GUID
-chown $PUID:$GUID /config
+# Change permissions on /config directory to the given PUID and PGID
+chown $PUID:$PGID /config
+
+# Run backend database migration
+cd /app/backend
+echo "Running database maintenance."
+su-exec appuser ./NzbWebDAV --db-migration
+if [ $? -ne 0 ]; then
+    echo "Database migration failed. Exiting with error code $?."
+    exit $?
+fi
+echo "Done with database maintenance."
 
 # Run backend as appuser in background
-cd /app/backend
 su-exec appuser ./NzbWebDAV &
 BACKEND_PID=$!
 
