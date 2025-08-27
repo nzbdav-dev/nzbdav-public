@@ -68,6 +68,10 @@ public class DatabaseStoreCollection(
 
     protected override async Task<DavStatusCode> DeleteItemAsync(DeleteItemRequest request)
     {
+        // Cannot delete items if readonly-webdav is enabled
+        if (configManager.IsEnforceReadonlyWebdavEnabled())
+            return DavStatusCode.Forbidden;
+
         // Cannot delete items from dav root.
         if (davDirectory.Id == DavItem.Root.Id)
             return DavStatusCode.Forbidden;

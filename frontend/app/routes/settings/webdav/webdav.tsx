@@ -45,6 +45,21 @@ export function WebdavSettings({ config, setNewConfig }: SabnzbdSettingsProps) {
                 <Form.Check
                     className={styles.input}
                     type="checkbox"
+                    id="readonly-checkbox"
+                    aria-describedby="readonly-help"
+                    label={`Enforce Read-Only`}
+                    checked={config["webdav.enforce-readonly"] === "true"}
+                    onChange={e => setNewConfig({ ...config, "webdav.enforce-readonly": "" + e.target.checked })} />
+                <Form.Text id="readonly-help" muted>
+                    The WebDAV `/content` folder will be readonly when checked. WebDAV clients will not be able to delete files within this directory.
+                </Form.Text>
+            </Form.Group>
+            <hr />
+            <Form.Group>
+                <Form.Check
+                    className={styles.input}
+                    type="checkbox"
+                    id="show-hidden-files-checkbox"
                     aria-describedby="show-hidden-files-help"
                     label={`Show hidden files on Dav Explorer`}
                     checked={config["webdav.show-hidden-files"] === "true"}
@@ -61,6 +76,7 @@ export function isWebdavSettingsUpdated(config: Record<string, string>, newConfi
     return config["webdav.user"] !== newConfig["webdav.user"]
         || config["webdav.pass"] !== newConfig["webdav.pass"]
         || config["webdav.show-hidden-files"] !== newConfig["webdav.show-hidden-files"]
+        || config["webdav.enforce-readonly"] !== newConfig["webdav.enforce-readonly"]
 }
 
 export function isWebdavSettingsValid(newConfig: Record<string, string>) {

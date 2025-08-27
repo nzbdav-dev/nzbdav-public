@@ -128,6 +128,13 @@ public class ConfigManager
         );
     }
 
+    public bool IsEnforceReadonlyWebdavEnabled()
+    {
+        var defaultValue = true;
+        var configValue = StringUtil.EmptyToNull(GetConfigValue("webdav.enforce-readonly"));
+        return (configValue != null ? bool.Parse(configValue) : defaultValue);
+    }
+
     public class ConfigEventArgs : EventArgs
     {
         public Dictionary<string, string> ChangedConfig { get; set; } = new();

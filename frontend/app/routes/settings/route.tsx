@@ -24,6 +24,7 @@ const defaultConfig = {
     "webdav.user": "",
     "webdav.pass": "",
     "webdav.show-hidden-files": "false",
+    "webdav.enforce-readonly": "true",
     "rclone.mount-dir": "",
     "media.library-dir": "",
 }
