@@ -2,6 +2,9 @@
 using NzbWebDAV.Clients;
 using NzbWebDAV.Exceptions;
 using NzbWebDAV.Extensions;
+using NzbWebDAV.Queue.DeobfuscationSteps._3.GetFileInfos;
+using NzbWebDAV.Streams;
+using NzbWebDAV.Utils;
 using SharpCompress.Common;
 using SharpCompress.Common.Rar.Headers;
 using SharpCompress.IO;
@@ -12,21 +15,21 @@ namespace NzbWebDAV.Queue.FileProcessors;
 
 public class RarProcessor(
     NzbFile nzbFile,
-    string filename,
+    GetFileInfosStep.FileInfo fileinfo,
     UsenetStreamingClient usenet,
     CancellationToken ct
 ) : BaseProcessor
 {
     public static bool CanProcess(string filename)
     {
-        return IsRarFile(filename);
+        return FilenameUtil.IsRarFile(filename);
     }
 
     public override async Task<BaseProcessor.Result?> ProcessAsync()
     {
         try
         {
-            await using var stream = await usenet.GetFileStream(nzbFile, concurrentConnections: 1, ct);
+            await using var stream = await GetNzbFileStream();
             return new Result()
             {
                 NzbFile = nzbFile,
@@ -48,17 +51,10 @@ public class RarProcessor(
         }
     }
 
-    private static bool IsRarFile(string? filename)
-    {
-        if (string.IsNullOrEmpty(filename)) return false;
-        return filename.EndsWith(".rar", StringComparison.OrdinalIgnoreCase)
-            || Regex.IsMatch(filename, @"\.r(\d+)$", RegexOptions.IgnoreCase);
-    }
-
     private string GetArchiveName()
     {
         // remove the .rar extension and remove the .partXX if it exists
-        var sansExtension = Path.GetFileNameWithoutExtension(filename);
+        var sansExtension = Path.GetFileNameWithoutExtension(fileinfo.FileName);
         sansExtension = Regex.Replace(sansExtension, @"\.part\d+$", "");
         return sansExtension;
     }
@@ -66,11 +62,11 @@ public class RarProcessor(
     private int GetPartNumber()
     {
         // handle the `.partXXX.rar` format
-        var partMatch = Regex.Match(filename, @"\.part(\d+)\.rar$", RegexOptions.IgnoreCase);
+        var partMatch = Regex.Match(fileinfo.FileName, @"\.part(\d+)\.rar$", RegexOptions.IgnoreCase);
         if (partMatch.Success) return int.Parse(partMatch.Groups[1].Value);
 
         // handle the `.rXXX` format
-        var rMatch = Regex.Match(filename, @"\.r(\d+)$", RegexOptions.IgnoreCase);
+        var rMatch = Regex.Match(fileinfo.FileName, @"\.r(\d+)$", RegexOptions.IgnoreCase);
         if (rMatch.Success) return int.Parse(rMatch.Groups[1].Value);
 
         // handle the `.rar` format.
@@ -100,6 +96,13 @@ public class RarProcessor(
         }
 
         return headers;
+    }
+
+    private async Task<NzbFileStream> GetNzbFileStream()
+    {
+        var segments = nzbFile.Segments.Select(x => x.MessageId.Value).ToArray();
+        var filesize = fileinfo.FileSize ?? await usenet.GetFileSizeAsync(nzbFile, ct);
+        return usenet.GetFileStream(segments, filesize, concurrentConnections: 1);
     }
 
     public new class Result : BaseProcessor.Result

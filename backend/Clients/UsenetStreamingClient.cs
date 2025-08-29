@@ -2,12 +2,10 @@
 using NzbWebDAV.Clients.Connections;
 using NzbWebDAV.Config;
 using NzbWebDAV.Exceptions;
-using NzbWebDAV.Extensions;
 using NzbWebDAV.Streams;
 using NzbWebDAV.Websocket;
 using Usenet.Nntp.Responses;
 using Usenet.Nzb;
-using Usenet.Yenc;
 
 namespace NzbWebDAV.Clients;
 
@@ -86,19 +84,19 @@ public class UsenetStreamingClient
 
     public async Task<NzbFileStream> GetFileStream(NzbFile nzbFile, int concurrentConnections, CancellationToken ct)
     {
-        var firstSegmentId = nzbFile.GetOrderedSegmentIds().First();
-        var firstSegmentStream = await _client.GetSegmentStreamAsync(firstSegmentId, ct);
-        return new NzbFileStream(nzbFile, firstSegmentStream, _client, concurrentConnections);
+        var segmentIds = nzbFile.Segments.Select(x => x.MessageId.Value).ToArray();
+        var fileSize = await _client.GetFileSizeAsync(nzbFile, cancellationToken: ct);
+        return new NzbFileStream(segmentIds, fileSize, _client, concurrentConnections);
     }
 
-    public Stream GetFileStream(string[] segmentIds, long fileSize, int concurrentConnections)
+    public NzbFileStream GetFileStream(string[] segmentIds, long fileSize, int concurrentConnections)
     {
         return new NzbFileStream(segmentIds, fileSize, _client, concurrentConnections);
     }
 
-    public Task<YencHeader> GetSegmentYencHeaderAsync(string segmentId, CancellationToken cancellationToken)
+    public Task<YencHeaderStream> GetSegmentStreamAsync(string segmentId, CancellationToken cancellationToken)
     {
-        return _client.GetSegmentYencHeaderAsync(segmentId, cancellationToken);
+        return _client.GetSegmentStreamAsync(segmentId, cancellationToken);
     }
 
     public Task<long> GetFileSizeAsync(NzbFile file, CancellationToken cancellationToken)

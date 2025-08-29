@@ -1,8 +1,6 @@
 ﻿using NzbWebDAV.Clients;
 using NzbWebDAV.Extensions;
 using NzbWebDAV.Utils;
-using Usenet.Nzb;
-using Usenet.Yenc;
 
 namespace NzbWebDAV.Streams;
 
@@ -14,33 +12,8 @@ public class NzbFileStream(
 ) : Stream
 {
     private long _position = 0;
-    private YencHeaderStream? _firstSegmentStream;
     private CombinedStream? _innerStream;
     private bool _disposed;
-
-    public YencHeader? FirstYencHeader => _firstSegmentStream?.Header;
-
-    public NzbFileStream
-    (
-        NzbFile file,
-        long fileSize,
-        INntpClient client,
-        int concurrentConnections
-    ) : this(file.GetOrderedSegmentIds(), fileSize, client, concurrentConnections)
-    {
-    }
-
-
-    public NzbFileStream
-    (
-        NzbFile file,
-        YencHeaderStream firstSegmentStream,
-        INntpClient client,
-        int concurrentConnections
-    ) : this(file.GetOrderedSegmentIds(), firstSegmentStream.Header.FileSize, client, concurrentConnections)
-    {
-        _firstSegmentStream = firstSegmentStream;
-    }
 
     public override void Flush()
     {
@@ -69,8 +42,6 @@ public class NzbFileStream(
         _position = absoluteOffset;
         _innerStream?.Dispose();
         _innerStream = null;
-        _firstSegmentStream?.Dispose();
-        _firstSegmentStream = null;
         return _position;
     }
 
@@ -122,16 +93,6 @@ public class NzbFileStream(
 
     private CombinedStream GetCombinedStream(int firstSegmentIndex, CancellationToken ct)
     {
-        if (firstSegmentIndex == 0 && _firstSegmentStream != null)
-        {
-            return new CombinedStream(
-                fileSegmentIds[1..]
-                    .Select(async x => (Stream)await client.GetSegmentStreamAsync(x, ct))
-                    .Prepend(Task.FromResult<Stream>(_firstSegmentStream))
-                    .WithConcurrency(concurrentConnections)
-            );
-        }
-
         return new CombinedStream(
             fileSegmentIds[firstSegmentIndex..]
                 .Select(async x => (Stream)await client.GetSegmentStreamAsync(x, ct))
@@ -143,7 +104,6 @@ public class NzbFileStream(
     {
         if (_disposed) return;
         _innerStream?.Dispose();
-        _firstSegmentStream?.Dispose();
         _disposed = true;
     }
 
@@ -151,7 +111,6 @@ public class NzbFileStream(
     {
         if (_disposed) return;
         if (_innerStream != null) await _innerStream.DisposeAsync();
-        if (_firstSegmentStream != null) await _firstSegmentStream.DisposeAsync();
         _disposed = true;
         GC.SuppressFinalize(this);
     }

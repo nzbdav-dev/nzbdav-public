@@ -1,5 +1,4 @@
 ﻿using System.Text.RegularExpressions;
-using NzbWebDAV.Clients;
 using Usenet.Nzb;
 
 namespace NzbWebDAV.Extensions;
@@ -12,38 +11,6 @@ public static class NzbFileExtensions
             .OrderBy(x => x.Number)
             .Select(x => x.MessageId.Value)
             .ToArray();
-    }
-
-    public static async Task<string> GetFileName
-    (
-        this NzbFile file,
-        UsenetStreamingClient client,
-        CancellationToken ct = default
-    )
-    {
-        // prioritize subject filename with fallback to header filename.
-        // unless header filename has a valid extension and subject filename doesn't.
-        var subjectFilename = file.GetSubjectFileName();
-        if (subjectFilename == "") return await file.GetHeaderFileName(client, ct);
-        var subjectFilenameExtension = Path.GetExtension(subjectFilename).TrimStart('.');
-        if (subjectFilenameExtension.Length is >= 2 and <= 4) return subjectFilename;
-        var headerFilename = await file.GetHeaderFileName(client, ct);
-        var headerFilenameExtension = Path.GetExtension(headerFilename).TrimStart('.');
-        if (headerFilenameExtension.Length is >=2 and <=4) return headerFilename;
-        return subjectFilename;
-    }
-
-    public static async Task<string> GetHeaderFileName
-    (
-        this NzbFile file,
-        UsenetStreamingClient client,
-        CancellationToken ct = default
-    )
-    {
-        if (file.Segments.Count == 0) return "";
-        var firstSegment = file.Segments[0].MessageId.Value;
-        var header = await client.GetSegmentYencHeaderAsync(firstSegment, default);
-        return header.FileName;
     }
 
     public static string GetSubjectFileName(this NzbFile file)

@@ -1,4 +1,6 @@
-﻿namespace NzbWebDAV.Utils;
+﻿using System.Text.RegularExpressions;
+
+namespace NzbWebDAV.Utils;
 
 public class FilenameUtil
 {
@@ -13,5 +15,12 @@ public class FilenameUtil
     public static bool IsVideoFile(string filename)
     {
         return VideoExtensions.Contains(Path.GetExtension(filename).ToLower());
+    }
+
+    public static bool IsRarFile(string? filename)
+    {
+        if (string.IsNullOrEmpty(filename)) return false;
+        return filename.EndsWith(".rar", StringComparison.OrdinalIgnoreCase)
+               || Regex.IsMatch(filename, @"\.r(\d+)$", RegexOptions.IgnoreCase);
     }
 }

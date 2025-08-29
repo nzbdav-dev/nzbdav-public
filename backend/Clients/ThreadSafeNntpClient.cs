@@ -77,8 +77,8 @@ public class ThreadSafeNntpClient : INntpClient
     public async Task<long> GetFileSizeAsync(NzbFile file, CancellationToken cancellationToken)
     {
         if (file.Segments.Count == 0) return 0;
-        var header = await GetSegmentYencHeaderAsync(file.Segments[0].MessageId.Value, cancellationToken);
-        return header.FileSize;
+        var header = await GetSegmentYencHeaderAsync(file.Segments[^1].MessageId.Value, cancellationToken);
+        return header.PartOffset + header.PartSize;
     }
 
     public async Task WaitForReady(CancellationToken cancellationToken)
@@ -108,7 +108,7 @@ public class ThreadSafeNntpClient : INntpClient
     private IEnumerable<string> GetArticleBody(string segmentId)
     {
         return _client.Body(new NntpMessageId(segmentId))?.Article?.Body
-            ?? throw new UsenetArticleNotFoundException($"Article with message-id {segmentId} not found.");
+               ?? throw new UsenetArticleNotFoundException($"Article with message-id {segmentId} not found.");
     }
 
     public void Dispose()

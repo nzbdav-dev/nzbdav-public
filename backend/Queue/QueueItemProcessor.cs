@@ -8,6 +8,9 @@ using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.Exceptions;
 using NzbWebDAV.Extensions;
+using NzbWebDAV.Queue.DeobfuscationSteps._1.FetchFirstSegment;
+using NzbWebDAV.Queue.DeobfuscationSteps._2.GetPar2FileDescriptors;
+using NzbWebDAV.Queue.DeobfuscationSteps._3.GetFileInfos;
 using NzbWebDAV.Queue.FileAggregators;
 using NzbWebDAV.Queue.FileProcessors;
 using NzbWebDAV.Queue.Validators;
@@ -101,22 +104,32 @@ public class QueueItemProcessor(
         var nzb = await NzbDocument.LoadAsync(stream);
         var nzbFiles = nzb.Files.Where(x => x.Segments.Count > 0).ToList();
 
-        // parse filenames for each nzb file
-        var filenamesTaskDictionary = nzbFiles.ToDictionary(x => x, x => x.GetFileName(usenetClient));
-        var filenamesDictionary = new Dictionary<NzbFile, string>();
-        foreach (var filenameTask in filenamesTaskDictionary)
-            filenamesDictionary[filenameTask.Key] = await filenameTask.Value;
+        // part 1 -- get name and size of each nzb file
+        var part1Progress = progress
+            .Scale(50, 100)
+            .ToPercentage(nzbFiles.Count);
+        var segments = await FetchFirstSegmentsStep.FetchFirstSegments(
+            nzbFiles, usenetClient, configManager, ct, part1Progress);
+        var par2FileDescriptors = await GetPar2FileDescriptorsStep.GetPar2FileDescriptors(
+            segments, usenetClient, ct);
+        var fileInfoDictionary = GetFileInfosStep.GetFileInfos(
+            segments, par2FileDescriptors);
 
-        // start file processing tasks
-        var fileProcessingTasks = nzbFiles
-            .DistinctBy(x => filenamesDictionary[x])
-            .Select(x => GetFileProcessor(x, filenamesDictionary[x]))
+        // part 2 -- perform file processing
+        var fileProcessors = nzbFiles
+            .DistinctBy(x => fileInfoDictionary[x].FileName)
+            .Select(x => GetFileProcessor(x, fileInfoDictionary[x]))
             .Where(x => x is not null)
-            .Select(x => x!.ProcessAsync())
             .ToList();
-
-        // wait for all file processing tasks to finish
-        var fileProcessingResults = (await TaskUtil.WhenAllOrError(fileProcessingTasks, progress))
+        var part2Progress = progress
+            .Offset(50)
+            .Scale(50, 100)
+            .ToPercentage(fileProcessors.Count);
+        var fileProcessingResultsAll = await fileProcessors
+            .Select(x => x!.ProcessAsync())
+            .WithConcurrencyAsync(configManager.GetMaxQueueConnections())
+            .GetAllAsync(ct, part2Progress);
+        var fileProcessingResults = fileProcessingResultsAll
             .Where(x => x is not null)
             .Select(x => x!)
             .ToList();
@@ -137,10 +150,10 @@ public class QueueItemProcessor(
         });
     }
 
-    private BaseProcessor? GetFileProcessor(NzbFile nzbFile, string filename)
+    private BaseProcessor? GetFileProcessor(NzbFile nzbFile, GetFileInfosStep.FileInfo fileinfo)
     {
-        return RarProcessor.CanProcess(filename) ? new RarProcessor(nzbFile, filename, usenetClient, ct)
-            : FileProcessor.CanProcess(filename) ? new FileProcessor(nzbFile, filename, usenetClient, ct)
+        return RarProcessor.CanProcess(fileinfo.FileName) ? new RarProcessor(nzbFile, fileinfo, usenetClient, ct)
+            : FileProcessor.CanProcess(fileinfo.FileName) ? new FileProcessor(nzbFile, fileinfo, usenetClient, ct)
             : null;
     }
 
