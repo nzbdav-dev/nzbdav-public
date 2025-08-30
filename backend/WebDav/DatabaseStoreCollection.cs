@@ -21,16 +21,11 @@ public class DatabaseStoreCollection(
     UsenetStreamingClient usenetClient,
     QueueManager queueManager,
     WebsocketManager websocketManager
-) : BaseStoreCollection
+) : BaseStoreReadonlyCollection
 {
     public override string Name => davDirectory.Name;
     public override string UniqueKey => davDirectory.Id.ToString();
     public override DateTime CreatedAt => davDirectory.CreatedAt;
-
-    protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be copied.");
-    }
 
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {
@@ -46,24 +41,9 @@ public class DatabaseStoreCollection(
             .ToArray();
     }
 
-    protected override Task<StoreItemResult> CreateItemAsync(CreateItemRequest request)
-    {
-        throw new InvalidOperationException("NZBs can only be added to the `/nzbs` folder.");
-    }
-
-    protected override Task<StoreCollectionResult> CreateCollectionAsync(CreateCollectionRequest request)
-    {
-        throw new InvalidOperationException("Directories cannot be created.");
-    }
-
     protected override bool SupportsFastMove(SupportsFastMoveRequest request)
     {
         return false;
-    }
-
-    protected override Task<StoreItemResult> MoveItemAsync(MoveItemRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be moved.");
     }
 
     protected override async Task<DavStatusCode> DeleteItemAsync(DeleteItemRequest request)

@@ -1,13 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
-using NWebDav.Server;
-using NWebDav.Server.Stores;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
 using NzbWebDAV.Database;
 using NzbWebDAV.Database.Models;
 using NzbWebDAV.WebDav.Base;
-using NzbWebDAV.WebDav.Requests;
-using Serilog;
 
 namespace NzbWebDAV.WebDav;
 
@@ -17,7 +13,7 @@ public class DatabaseStoreNzbFile(
     DavDatabaseClient dbClient,
     UsenetStreamingClient usenetClient,
     ConfigManager configManager
-) : BaseStoreItem
+) : BaseStoreReadonlyItem
 {
     public DavItem DavItem => davNzbFile;
     public override string Name => davNzbFile.Name;
@@ -35,17 +31,5 @@ public class DatabaseStoreNzbFile(
         var file = await dbClient.GetNzbFileAsync(id, cancellationToken);
         if (file is null) throw new FileNotFoundException($"Could not find nzb file with id: {id}");
         return usenetClient.GetFileStream(file.SegmentIds, FileSize, configManager.GetConnectionsPerStream());
-    }
-
-    protected override Task<DavStatusCode> UploadFromStreamAsync(UploadFromStreamRequest request)
-    {
-        Log.Error("nzb-mounted files cannot be modified.");
-        return Task.FromResult(DavStatusCode.Forbidden);
-    }
-
-    protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
-    {
-        Log.Error("nzb-mounted files cannot be copied.");
-        return Task.FromResult(new StoreItemResult(DavStatusCode.Forbidden));
     }
 }

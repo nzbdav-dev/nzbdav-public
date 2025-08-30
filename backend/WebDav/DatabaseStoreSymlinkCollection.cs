@@ -13,22 +13,15 @@ namespace NzbWebDAV.WebDav;
 public class DatabaseStoreSymlinkCollection(
     DavItem davDirectory,
     DavDatabaseClient dbClient,
-    ConfigManager configManager,
-    string parentPath = ""
-) : BaseStoreCollection
+    ConfigManager configManager
+) : BaseStoreReadonlyCollection
 {
     public override string Name => davDirectory.Name;
     public override string UniqueKey => davDirectory.Id.ToString();
     public override DateTime CreatedAt => davDirectory.CreatedAt;
 
-    private string RelativePath => davDirectory.Id == DavItem.SymlinkFolder.Id ? "" : Path.Join(parentPath, Name);
     private Guid TargetId => davDirectory.Id == DavItem.SymlinkFolder.Id ? DavItem.ContentFolder.Id : davDirectory.Id;
     private DeletedFileManager DeletedFiles => new(davDirectory.Id);
-
-    protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be copied.");
-    }
 
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {
@@ -54,24 +47,9 @@ public class DatabaseStoreSymlinkCollection(
             .ToArray();
     }
 
-    protected override Task<StoreItemResult> CreateItemAsync(CreateItemRequest request)
-    {
-        throw new InvalidOperationException("NZBs can only be added to the `/nzbs` folder.");
-    }
-
-    protected override Task<StoreCollectionResult> CreateCollectionAsync(CreateCollectionRequest request)
-    {
-        throw new InvalidOperationException("Directories cannot be created.");
-    }
-
     protected override bool SupportsFastMove(SupportsFastMoveRequest request)
     {
         return false;
-    }
-
-    protected override Task<StoreItemResult> MoveItemAsync(MoveItemRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be moved.");
     }
 
     protected override Task<DavStatusCode> DeleteItemAsync(DeleteItemRequest request)
@@ -114,11 +92,11 @@ public class DatabaseStoreSymlinkCollection(
         return davItem.Type switch
         {
             DavItem.ItemType.Directory =>
-                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager, RelativePath),
+                new DatabaseStoreSymlinkCollection(davItem, dbClient, configManager),
             DavItem.ItemType.NzbFile =>
-                new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager),
+                new DatabaseStoreSymlinkFile(davItem, configManager),
             DavItem.ItemType.RarFile =>
-                new DatabaseStoreSymlinkFile(davItem, RelativePath, configManager),
+                new DatabaseStoreSymlinkFile(davItem, configManager),
             _ => throw new ArgumentException("Unrecognized directory child type.")
         };
     }

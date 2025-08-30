@@ -9,7 +9,7 @@ using Serilog;
 
 namespace NzbWebDAV.WebDav;
 
-public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, ConfigManager configManager) : BaseStoreItem
+public class DatabaseStoreSymlinkFile(DavItem davFile, ConfigManager configManager) : BaseStoreReadonlyItem
 {
     public override string Name => davFile.Name + ".rclonelink";
     public override string UniqueKey => davFile.Id + ".rclonelink";
@@ -21,18 +21,6 @@ public class DatabaseStoreSymlinkFile(DavItem davFile, string parentPath, Config
     public override Task<Stream> GetReadableStreamAsync(CancellationToken cancellationToken)
     {
         return Task.FromResult<Stream>(new MemoryStream(ContentBytes));
-    }
-
-    protected override Task<DavStatusCode> UploadFromStreamAsync(UploadFromStreamRequest request)
-    {
-        Log.Error("symlinks files cannot be modified. They simply mirror items in the /content root");
-        return Task.FromResult(DavStatusCode.Forbidden);
-    }
-
-    protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
-    {
-        Log.Error("symlinks files cannot be copied. They simply mirror items in the /content root");
-        return Task.FromResult(new StoreItemResult(DavStatusCode.Forbidden));
     }
 
     private string GetTargetPath()

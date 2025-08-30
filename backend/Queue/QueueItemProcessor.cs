@@ -14,7 +14,6 @@ using NzbWebDAV.Queue.DeobfuscationSteps._3.GetFileInfos;
 using NzbWebDAV.Queue.FileAggregators;
 using NzbWebDAV.Queue.FileProcessors;
 using NzbWebDAV.Queue.Validators;
-using NzbWebDAV.Utils;
 using NzbWebDAV.Websocket;
 using Serilog;
 using Usenet.Nzb;

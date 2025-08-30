@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using NWebDav.Server;
 using NWebDav.Server.Stores;
 using NzbWebDAV.Clients;
 using NzbWebDAV.Config;
@@ -17,7 +16,7 @@ public class DatabaseStoreIdsCollection(
     DavDatabaseClient dbClient,
     UsenetStreamingClient usenetClient,
     ConfigManager configManager
-) : BaseStoreCollection
+) : BaseStoreReadonlyCollection
 {
     public override string Name => name;
     public override string UniqueKey => currentPath;
@@ -30,11 +29,6 @@ public class DatabaseStoreIdsCollection(
         Path.AltDirectorySeparatorChar,
         StringSplitOptions.RemoveEmptyEntries
     );
-
-    protected override Task<StoreItemResult> CopyAsync(CopyRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be copied.");
-    }
 
     protected override async Task<IStoreItem?> GetItemAsync(GetItemRequest request)
     {
@@ -67,28 +61,8 @@ public class DatabaseStoreIdsCollection(
             .ToArray();
     }
 
-    protected override Task<StoreItemResult> CreateItemAsync(CreateItemRequest request)
-    {
-        throw new InvalidOperationException("Files cannot be created.");
-    }
-
-    protected override Task<StoreCollectionResult> CreateCollectionAsync(CreateCollectionRequest request)
-    {
-        throw new InvalidOperationException("Directories cannot be created.");
-    }
-
     protected override bool SupportsFastMove(SupportsFastMoveRequest request)
     {
         return false;
-    }
-
-    protected override Task<StoreItemResult> MoveItemAsync(MoveItemRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be moved.");
-    }
-
-    protected override Task<DavStatusCode> DeleteItemAsync(DeleteItemRequest request)
-    {
-        throw new InvalidOperationException("Files and Directories cannot be deleted.");
     }
 }
